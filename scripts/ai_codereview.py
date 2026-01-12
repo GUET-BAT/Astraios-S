@@ -284,13 +284,33 @@ def submit_review_with_inline_comments(
         "comments": comments
     }
 
+    # ============================================================
+    # ✅ 核心修复开始 - 新增422降级逻辑（官方推荐方案）
+    # ============================================================
     r = requests.post(url, headers=headers, json=payload)
-
+    # 仅捕获422状态码，且错误信息是审批权限不足时执行降级
     if r.status_code == 422:
-        print("❌ GitHub Review 422")
-        print(r.text)
-        r.raise_for_status()
+        print("⚠️ 检测到422错误：GitHub Actions 无PR审批权限")
+        try:
+            # 解析错误详情
+            error_detail = r.json()
+            error_msg = str(error_detail)
+        except ValueError:
+            # 解析JSON失败时用响应文本
+            error_msg = r.text
+        
+        # 精准匹配关键词，避免误降级
+        if "GitHub Actions is not permitted to approve pull requests" in error_msg or "not permitted to approve" in error_msg:
+            print("✅ 自动降级评审类型：APPROVE → COMMENT (保留所有内联评论和评审内容)")
+            # 降级为评论模式，其他payload内容完全不变
+            payload["event"] = "COMMENT"
+            # 重新发起请求
+            r = requests.post(url, headers=headers, json=payload)
+    # ============================================================
+    # ✅ 核心修复结束
+    # ============================================================
 
+    # 抛出其他异常（非422审批权限问题），保证报错可排查
     r.raise_for_status()
 
 # ============================================================
@@ -309,33 +329,6 @@ def main():
 
     headers = gh_headers(config["gh_token"])
 
-    # post_inline_comments(
-    #     config["repo"],
-    #     config["pr_number"],
-    #     config["github_sha"],
-    #     headers,
-    #     issues
-    # )
-
-    # critical = [i for i in issues if i["severity"] == "CRITICAL"]
-
-    # if critical:
-    #     submit_review(
-    #         config["repo"],
-    #         config["pr_number"],
-    #         headers,
-    #         "REQUEST_CHANGES",
-    #         critical
-    #     )
-    # else:
-    #     submit_review(
-    #         config["repo"],
-    #         config["pr_number"],
-    #         headers,
-    #         "APPROVE",
-    #         []
-    #     )
-
     submit_review_with_inline_comments(
     repo=config["repo"],
     pr=config["pr_number"],
@@ -344,12 +337,6 @@ def main():
     issues=issues
     )
 
-    # create_check_run(
-    #     config["repo"],
-    #     config["github_sha"],
-    #     headers,
-    #     success=not bool(critical)
-    # )
     create_check_run(
     config["repo"],
     config["github_sha"],
