@@ -240,6 +240,59 @@ def create_check_run(repo, sha, headers, success):
     r = requests.post(url, headers=headers, json=payload)
     r.raise_for_status()
 
+
+def submit_review_with_inline_comments(
+    repo,
+    pr,
+    sha,
+    headers,
+    issues,
+):
+    url = f"https://api.github.com/repos/{repo}/pulls/{pr}/reviews"
+
+    has_critical = any(i["severity"] == "CRITICAL" for i in issues)
+
+    event = "REQUEST_CHANGES" if has_critical else "APPROVE"
+
+    review_body_lines = []
+    for i in issues:
+        review_body_lines.append(
+            f"- **{i['severity']}** `{i['file']}:{i.get('line')}`\n  {i['message']}"
+        )
+
+    review_body = "\n".join(review_body_lines) or "AI automated code review passed."
+
+    comments = []
+    for i in issues:
+        if "line" not in i:
+            continue
+
+        comments.append({
+            "path": i["file"],
+            "line": i["line"],
+            "side": "RIGHT",
+            "body": (
+                f"**{i['severity']}**\n"
+                f"{i['message']}\n\n"
+                f"建议：{i['suggestion']}"
+            )
+        })
+
+    payload = {
+        "event": event,
+        "body": review_body,
+        "comments": comments
+    }
+
+    r = requests.post(url, headers=headers, json=payload)
+
+    if r.status_code == 422:
+        print("❌ GitHub Review 422")
+        print(r.text)
+        r.raise_for_status()
+
+    r.raise_for_status()
+
 # ============================================================
 # main
 # ============================================================
@@ -256,38 +309,52 @@ def main():
 
     headers = gh_headers(config["gh_token"])
 
-    post_inline_comments(
-        config["repo"],
-        config["pr_number"],
-        config["github_sha"],
-        headers,
-        issues
+    # post_inline_comments(
+    #     config["repo"],
+    #     config["pr_number"],
+    #     config["github_sha"],
+    #     headers,
+    #     issues
+    # )
+
+    # critical = [i for i in issues if i["severity"] == "CRITICAL"]
+
+    # if critical:
+    #     submit_review(
+    #         config["repo"],
+    #         config["pr_number"],
+    #         headers,
+    #         "REQUEST_CHANGES",
+    #         critical
+    #     )
+    # else:
+    #     submit_review(
+    #         config["repo"],
+    #         config["pr_number"],
+    #         headers,
+    #         "APPROVE",
+    #         []
+    #     )
+
+    submit_review_with_inline_comments(
+    repo=config["repo"],
+    pr=config["pr_number"],
+    sha=config["github_sha"],
+    headers=headers,
+    issues=issues
     )
 
-    critical = [i for i in issues if i["severity"] == "CRITICAL"]
-
-    if critical:
-        submit_review(
-            config["repo"],
-            config["pr_number"],
-            headers,
-            "REQUEST_CHANGES",
-            critical
-        )
-    else:
-        submit_review(
-            config["repo"],
-            config["pr_number"],
-            headers,
-            "APPROVE",
-            []
-        )
-
+    # create_check_run(
+    #     config["repo"],
+    #     config["github_sha"],
+    #     headers,
+    #     success=not bool(critical)
+    # )
     create_check_run(
-        config["repo"],
-        config["github_sha"],
-        headers,
-        success=not bool(critical)
+    config["repo"],
+    config["github_sha"],
+    headers,
+    success=not any(i["severity"] == "CRITICAL" for i in issues)
     )
 
 if __name__ == "__main__":
