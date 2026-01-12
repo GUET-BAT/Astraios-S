@@ -280,8 +280,8 @@ def main():
     config = init_config()
     # 读取diff文件
     diff_content = read_diff_file(config["diff_path"])
-    # 调用AI评审
-    ai_content = call_ai_review(config["client"], diff_content)
+    # 调用AI评审函数
+    ai_content = call_ai_review(config, diff_content)
     # 解析AI返回的JSON
     ai_result = parse_ai_json(ai_content)
     approval = ai_result["approval"]
