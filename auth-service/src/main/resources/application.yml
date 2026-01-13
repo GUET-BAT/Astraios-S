@@ -1,0 +1,28 @@
+server:
+  port: 8081
+  tomcat:
+    uri-encoding: UTF-8
+
+spring:
+  application:
+    name: auth-service
+  profiles:
+    active: dev
+  cloud:
+    nacos:
+      server-addr: localhost:8848
+      config:
+        enabled: false
+        file-extension: yaml
+        shared-configs:
+          - data-id: shared-spring.yaml
+            refresh: false
+          - data-id: shared-redis.yaml
+            refresh: false
+          - data-id: shared-mybatis.yaml
+            refresh: false
+          - data-id: shared-logs.yaml
+            refresh: false
+      discovery:
+        enabled: false
+        register-enabled: false
