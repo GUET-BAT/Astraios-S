@@ -1,250 +1,68 @@
-import json
-import os
-import sys
-import re
-import requests
+name: AI Code Review
 
-# -------------------------- 初始化配置 & 入参读取 & 修复告警：校验GITHUB_SHA --------------------------
-def init_config():
-    # 校验入参是否正确
-    if len(sys.argv) < 2:
-        print(" Error: 请传入diff文件路径作为脚本入参")
-        sys.exit(1)  # 非零退出码，规范CI/CD执行状态
-    diff_path = sys.argv[1]
-    
-    # ✅ 修复告警：校验所有必要环境变量，包含GITHUB_SHA，缺失则报错+非零退出
-    required_envs = ["OPENAI_API_KEY", "REPO", "PR_NUMBER", "GH_TOKEN", "GITHUB_SHA"]
-    missing_envs = []
-    for env in required_envs:
-        if not os.environ.get(env) or os.environ.get(env).strip() == "":
-            missing_envs.append(env)
-    if missing_envs:
-        print(f" Error: 缺失必要的环境变量，请检查配置: {', '.join(missing_envs)}")
-        sys.exit(1)
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
 
-    # 返回配置字典
-    return {
-        "diff_path": diff_path,
-        "dashscope_api_key": os.environ["OPENAI_API_KEY"],
-        "repo": os.environ["REPO"],
-        "pr_number": os.environ["PR_NUMBER"],
-        "gh_token": os.environ["GH_TOKEN"],
-        "github_sha": os.environ["GITHUB_SHA"]
-    }
+jobs:
+  ai-review:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      checks: write
 
-# -------------------------- 读取diff文件 & 修复告警：空文件友好提示 --------------------------
-def read_diff_file(diff_path):
-    try:
-        with open(diff_path, 'r', encoding='utf-8') as f:
-            diff_content = f.read().strip()
-        
-        #  修复告警：空diff文件更友好的日志提示，详细说明+优雅退出
-        if not diff_content:
-            print("Info: diff文件内容为空,本次PR无代码变更,跳过AI评审流程")
-            sys.exit(0)  # 零退出码，代表正常结束
-        
-        print(f"Success: 成功读取diff文件,代码变更内容长度: {len(diff_content)} 字符")
-        return diff_content
-    except FileNotFoundError:
-        print(f" Error: 找不到指定的diff文件 -> {diff_path}")
-        sys.exit(1)
-    except Exception as e:
-        print(f" Error: 读取diff文件失败 -> {str(e)}")
-        sys.exit(1)
+    steps:
+      - uses: actions/checkout@v4
 
-# -------------------------- 核心：调用通义千问API进行代码评审 --------------------------
-def call_ai_review(config, diff_content):
-    DASHSCOPE_API_KEY = config["dashscope_api_key"]
-    API_URL = "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation"
-    # 评审提示词-保留原有规则，无需修改
-    PROMPT = f"""
-You are a senior software engineer performing code review.
-Review the following git diff.
-Classify issues into:
-- CRITICAL: bugs, crashes, security, data loss
-- MAJOR: logic issues, race conditions
-- MINOR: style, refactor suggestions
-Rules:
-- If any CRITICAL exists -> approval = false
-- Otherwise -> approval = true
-Output JSON ONLY:
-{{
-  "approval": boolean,
-  "issues": [
-    {{
-      "severity": "CRITICAL|MAJOR|MINOR",
-      "file": "path",
-      "line": number,
-      "message": "description",
-      "suggestion": "how to fix"
-    }}
-  ]
-}}
-Diff:
-{diff_content}
-"""
-    payload = {
-        "model": "qwen-max",
-        "input": {"messages": [{"role": "user", "content": PROMPT}]},
-        "parameters": {"temperature": 0.2, "top_p": 0.9, "max_tokens": 2048}
-    }
-    headers = {
-        "Authorization": f"Bearer {DASHSCOPE_API_KEY}",
-        "Content-Type": "application/json"
-    }
+      - name: Install gh cli (if not exists)
+        run: |
+          # ✅ 修复告警:先检查gh是否已安装,已安装则跳过,避免重复安装
+          if ! command -v gh &> /dev/null; then
+            curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+            sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
+            echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+            sudo apt update -y && sudo apt install gh -y
+          else
+            echo "✅ gh cli already installed, skip installation"
+          fi
 
-    try:
-        print("Info: 开始调用【阿里云 通义千问】进行AI代码评审...")
-        resp = requests.post(API_URL, headers=headers, json=payload, timeout=60)
-        resp.raise_for_status()
-        resp_json = resp.json()
-        
-        if resp_json.get("output", {}).get("text"):
-            ai_content = resp_json["output"]["text"].strip()
-            print(" Success: 通义千问API调用成功,获取到评审结果")
-            return ai_content
-        else:
-            print(f" Error: 通义千问返回内容异常，无评审结果 -> {json.dumps(resp_json, ensure_ascii=False)}")
-            return None
-    # ✅ 修复告警：AI调用失败时，详细日志+非零退出码，精准定位问题
-    except requests.exceptions.HTTPError as e:
-        err_msg = f"通义千问API请求失败 [状态码:{resp.status_code}] -> {str(e)}"
-        if resp.status_code == 401:
-            err_msg += " | 原因:API-KEY无效/过期，请检查密钥配置"
-        elif resp.status_code == 429:
-            err_msg += " | 原因：调用频率超限/额度不足，请稍后重试"
-        print(f" Error: {err_msg}")
-        return None
-    except Exception as e:
-        print(f" Error: 通义千问AI评审调用失败 -> {str(e)}")
-        return None
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
-# -------------------------- 解析AI返回的JSON & 修复告警：解析失败详细日志+非零退出 --------------------------
-def parse_ai_json(ai_content):
-    if not ai_content:
-        print(" Error: AI评审结果为空,调用失败")
-        # 返回兜底结果+非零退出，阻断合并
-        return {"approval": False, "issues": [{"severity": "CRITICAL", "file": "system", "line": 0, "message": "AI评审服务调用失败", "suggestion": "请查看Action日志排查问题，或稍后重试"}]}
-    
-    try:
-        # 正则提取纯净JSON，兼容AI返回的多余字符
-        json_match = re.search(r'\{[\s\S]*\}', ai_content)
-        if not json_match:
-            raise ValueError(f"未匹配到有效JSON内容,AI原始返回: {ai_content[:300]}...")
-        
-        pure_json = json_match.group(0)
-        result = json.loads(pure_json)
-        
-        # 校验JSON结构完整性
-        if "approval" not in result or "issues" not in result:
-            raise ValueError("AI返回的JSON缺少核心字段 approval/issues")
-        
-        issue_count = len(result['issues'])
-        print(f" Success: AI评审结果解析完成,共发现 {issue_count} 个问题，审批状态: {result['approval']}")
-        return result
-    # ✅ 修复告警：JSON解析失败时，打印详细日志+返回错误结果，规范退出
-    except Exception as e:
-        err_detail = f"JSON解析失败 -> {str(e)} | AI原始返回内容: {ai_content[:300]}..."
-        print(f" Error: {err_detail}")
-        return {"approval": False, "issues": [{"severity": "CRITICAL", "file": "system", "line": 0, "message": "AI评审结果解析失败", "suggestion": err_detail}]}
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
 
-# -------------------------- 构建GitHub请求头 --------------------------
-def get_github_headers(gh_token):
-    return {
-        "Authorization": f"Bearer {gh_token}",
-        "Accept": "application/vnd.github+json",
-        "X-GitHub-Api-Version": "2022-11-28"
-    }
+      - name: Install deps
+        run: |
+          pip install -r requirements.txt
 
-# -------------------------- 向PR发布格式化评审评论 --------------------------
-def post_pr_comment(repo, pr_number, headers, issues):
-    try:
-        body = "### 🤖 AI Code Review Result (阿里云 通义千问 qwen-max)\n\n"
-        if not issues:
-            body += " **No issues found. Code is clean and safe to merge!** \n\n"
-        else:
-            issues_sorted = sorted(issues, key=lambda x: {"CRITICAL":0, "MAJOR":1, "MINOR":2}[x["severity"]])
-            for idx, issue in enumerate(issues_sorted, 1):
-                severity_emoji = {"CRITICAL": "❌", "MAJOR": "⚠️", "MINOR": "ℹ️"}[issue["severity"]]
-                body += f"{idx}. **{severity_emoji} {issue['severity']}** `{issue['file']}:{issue['line']}`\n"
-                body += f"   ➤ 问题: {issue['message']}\n"
-                body += f"   ➤ 修复建议: {issue['suggestion']}\n\n"
-        
-        resp = requests.post(
-            f"https://api.github.com/repos/{repo}/issues/{pr_number}/comments",
-            headers=headers,
-            json={"body": body},
-            timeout=30
-        )
-        resp.raise_for_status()
-        print("✅ Success: PR评审评论已成功发布")
-    except Exception as e:
-        print(f"⚠️ Warning: PR评论发布失败 -> {str(e)}")
+      - name: Get PR diff
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr diff ${{ github.event.pull_request.number }} > diff.patch
 
-# -------------------------- 创建GitHub Check Run（阻断/放行合并） --------------------------
-def create_check_run(repo, github_sha, headers, approval, issues):
-    try:
-        conclusion = "success" if approval else "failure"
-        title = "✅ AI Review Passed" if approval else "❌ AI Review Failed (Critical Issues)"
-        critical_count = len([i for i in issues if i["severity"] == "CRITICAL"])
-        major_count = len([i for i in issues if i["severity"] == "MAJOR"])
-        minor_count = len([i for i in issues if i["severity"] == "MINOR"])
-        
-        summary = f"""Critical: {critical_count} | Major: {major_count} | Minor: {minor_count}
-{'✅ No critical issues detected, safe to merge.' if approval else '❌ Critical issues found, merge blocked!'}"""
+      - name: Check if diff.patch is empty
+        run: |
+          if [ ! -s diff.patch ]; then
+            echo "No code diff found in PR, skip AI review"
+            exit 0
+          fi
 
-        resp = requests.post(
-            f"https://api.github.com/repos/{repo}/check-runs",
-            headers=headers,
-            json={
-                "name": "AI Code Review",
-                "head_sha": github_sha,
-                "status": "completed",
-                "conclusion": conclusion,
-                "output": {"title": title, "summary": summary}
-            },
-            timeout=30
-        )
-        resp.raise_for_status()
-        print(f"✅ Success: CheckRun创建成功,评审结果: {conclusion}")
-    except Exception as e:
-        print(f"⚠️ Warning: CheckRun创建失败 -> {str(e)}")
-
-# -------------------------- 自动审批PR --------------------------
-def approve_pr(repo, pr_number, headers):
-    try:
-        resp = requests.post(
-            f"https://api.github.com/repos/{repo}/pulls/{pr_number}/reviews",
-            headers=headers,
-            json={"event": "APPROVE", "body": "🤖 AI Review Approved: No critical issues found, code quality is acceptable."},
-            timeout=30
-        )
-        resp.raise_for_status()
-        print("✅ Success: PR已自动审批通过 (APPROVE)")
-    except Exception as e:
-        print(f"⚠️ Warning: PR自动审批失败 -> {str(e)}")
-
-# -------------------------- 主函数入口 --------------------------
-def main():
-    config = init_config()
-    diff_content = read_diff_file(config["diff_path"])
-    ai_content = call_ai_review(config, diff_content)
-    ai_result = parse_ai_json(ai_content)
-    approval = ai_result["approval"]
-    issues = ai_result["issues"]
-    headers = get_github_headers(config["gh_token"])
-    
-    # 执行核心操作
-    post_pr_comment(config["repo"], config["pr_number"], headers, issues)
-    create_check_run(config["repo"], config["github_sha"], headers, approval, issues)
-    if approval:
-        approve_pr(config["repo"], config["pr_number"], headers)
-    
-    # ✅ 规范：如果是失败状态，非零退出，让Action显示失败
-    if not approval:
-        print("❌ AI评审发现高危问题,流程结束,退出码: 1")
-        sys.exit(1)
-    sys.exit(0)
-
-if __name__ == "__main__":
-    main()
+      - name: Run AI review
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_SHA: ${{ github.sha }} 
+        run: |
+          timeout 300 python scripts/ai_codereview.py diff.patch || (echo "❌ AI review timeout, please retry later" && exit 1)
