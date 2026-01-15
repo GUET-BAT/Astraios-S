@@ -27,6 +27,7 @@
 		<mysql.version>8.3.0</mysql.version>
 		<mapstruct.version>1.6.3</mapstruct.version>
 		<jwt.version>0.13.0</jwt.version>
+		<nimbus.version>10.6</nimbus.version>
 	</properties>
 
 	<!-- ========== 依赖版本管理 ========== -->
@@ -57,6 +58,46 @@
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
+
+			<!--  springdoc-openapi (Swagger)  -->
+			<dependency>
+				<groupId>org.springdoc</groupId>
+				<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+				<version>${springdoc.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.springdoc</groupId>
+				<artifactId>springdoc-openapi-starter-webmvc-api</artifactId>
+				<version>${springdoc.version}</version>
+			</dependency>
+
+			<!-- 	JWt	-->
+			<dependency>
+				<groupId>io.jsonwebtoken</groupId>
+				<artifactId>jjwt-api</artifactId>
+				<version>${jwt.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>io.jsonwebtoken</groupId>
+				<artifactId>jjwt-jackson</artifactId>
+				<version>${jwt.version}</version>
+				<scope>runtime</scope>
+			</dependency>
+			<dependency>
+				<groupId>io.jsonwebtoken</groupId>
+				<artifactId>jjwt-impl</artifactId>
+				<version>${jwt.version}</version>
+				<scope>runtime</scope>
+			</dependency>
+
+			<!-- jwks -->
+			<dependency>
+				<groupId>com.nimbusds</groupId>
+				<artifactId>nimbus-jose-jwt</artifactId>
+				<version>${nimbus.version}</version>
+				<scope>compile</scope>
+			</dependency>
+
 		</dependencies>
 
 	</dependencyManagement>
