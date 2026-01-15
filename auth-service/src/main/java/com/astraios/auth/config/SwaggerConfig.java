@@ -42,9 +42,7 @@ public class SwaggerConfig {
     @Bean
     public OpenAPI springShopOpenAPI() {
         log.info("http://{}:{}/swagger-ui.html", host, port);
-        log.info("http://localhost:{}/swagger-ui.html", port);
-        log.info("http://localhost:{}/swagger-ui/index.html", port);
-        log.info("http://localhost:{}/doc.html", port);
+
         return new OpenAPI()
                 .info(new Info()
                         .title("astraios API")

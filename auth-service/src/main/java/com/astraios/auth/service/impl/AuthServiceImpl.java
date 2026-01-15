@@ -3,6 +3,7 @@ package com.astraios.auth.service.impl;
 import com.astraios.auth.domain.dto.LoginRequest;
 import com.astraios.auth.domain.dto.LoginResult;
 import com.astraios.auth.domain.dto.RegisterRequest;
+import com.astraios.auth.domain.dto.RegisterResult;
 import com.astraios.auth.service.AuthService;
 import com.astraios.auth.utils.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
@@ -30,7 +31,7 @@ public class AuthServiceImpl implements AuthService {
             LoginResult loginResult = new LoginResult();
 
             // 1.校验请求
-            if(!StringUtils.hasText(request.getUsername()) && !StringUtils.hasText(request.getPassword())){
+            if(StringUtils.hasText(request.getUsername()) || StringUtils.hasText(request.getPassword())){
                 loginResult.setMsg("Invalid username or password");
                 loginResult.setStatus(HttpStatus.UNAUTHORIZED.value());
                 return loginResult;
@@ -61,24 +62,28 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public ResponseEntity<?> register(RegisterRequest request) {
+    public ResponseEntity<RegisterResult> register(RegisterRequest request) {
+        RegisterResult registerResult = new RegisterResult();
+        registerResult.setMsg("Invalid username or password");
+        registerResult.setStatus(HttpStatus.UNAUTHORIZED.value());
         try {
-
             // 1.校验请求
-            if(!StringUtils.hasText(request.getUsername()) && !StringUtils.hasText(request.getPassword())){
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid username or password");
+            if(StringUtils.hasText(request.getUsername()) || StringUtils.hasText(request.getPassword())){
+
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(registerResult);
             }
 
             // 2. 密码加密
             String encodedPassword = passwordEncoder.encode(request.getPassword());
 
             // 3. TODO RPC调用user服务注册
+            registerResult.setMsg("success");
+            registerResult.setStatus(HttpStatus.OK.value());
+            return ResponseEntity.status(HttpStatus.OK).body(registerResult);
 
-            return ResponseEntity.status(HttpStatus.CREATED).body("success");
         }
         catch (Exception e) {
-
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid username or password");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(registerResult);
         }
     }
 }
