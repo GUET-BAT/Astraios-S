@@ -27,6 +27,7 @@
 		<mysql.version>8.3.0</mysql.version>
 		<mapstruct.version>1.6.3</mapstruct.version>
 		<jwt.version>0.13.0</jwt.version>
+		<nimbus.version>10.6</nimbus.version>
 	</properties>
 
 	<!-- ========== 依赖版本管理 ========== -->
@@ -88,6 +89,15 @@
 				<version>${jwt.version}</version>
 				<scope>runtime</scope>
 			</dependency>
+
+			<!-- jwks -->
+			<dependency>
+				<groupId>com.nimbusds</groupId>
+				<artifactId>nimbus-jose-jwt</artifactId>
+				<version>${nimbus.version}</version>
+				<scope>compile</scope>
+			</dependency>
+
 		</dependencies>
 
 	</dependencyManagement>
