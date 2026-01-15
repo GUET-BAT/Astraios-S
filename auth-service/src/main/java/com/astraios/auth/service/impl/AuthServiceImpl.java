@@ -29,9 +29,8 @@ public class AuthServiceImpl implements AuthService {
     public LoginResult login(LoginRequest request) {
         try {
             LoginResult loginResult = new LoginResult();
-
             // 1.校验请求
-            if(StringUtils.hasText(request.getUsername()) || StringUtils.hasText(request.getPassword())){
+            if (!StringUtils.hasText(request.getUsername()) || !StringUtils.hasText(request.getPassword())){
                 loginResult.setMsg("Invalid username or password");
                 loginResult.setStatus(HttpStatus.UNAUTHORIZED.value());
                 return loginResult;
@@ -68,7 +67,7 @@ public class AuthServiceImpl implements AuthService {
         registerResult.setStatus(HttpStatus.UNAUTHORIZED.value());
         try {
             // 1.校验请求
-            if(StringUtils.hasText(request.getUsername()) || StringUtils.hasText(request.getPassword())){
+            if (!StringUtils.hasText(request.getUsername()) || !StringUtils.hasText(request.getPassword())){
 
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(registerResult);
             }
