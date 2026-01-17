@@ -1,0 +1,6 @@
+Name: gateway
+Host: 0.0.0.0
+Port: 8080
+AuthService:
+  BaseUrl: http://auth-service:8080
+
