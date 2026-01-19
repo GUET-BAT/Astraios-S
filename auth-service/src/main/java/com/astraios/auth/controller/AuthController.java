@@ -2,7 +2,7 @@ package com.astraios.auth.controller;
 
 
 import com.astraios.auth.domain.dto.LoginRequest;
-import com.astraios.auth.domain.dto.LoginResult;
+import com.astraios.auth.domain.vo.LoginResult;
 import com.astraios.auth.domain.dto.RegisterRequest;
 import com.astraios.auth.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -14,6 +14,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api")
@@ -36,5 +38,9 @@ public class AuthController {
         return authService.register(request);
     }
 
-
+    @Operation(summary = "刷新令牌")
+    @PostMapping("/refresh/token")
+    public ResponseEntity<?> refresh(String refreshToken){
+        return authService.refreshToken(refreshToken);
+    }
 }

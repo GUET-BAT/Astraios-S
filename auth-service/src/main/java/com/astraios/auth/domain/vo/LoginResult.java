@@ -1,4 +1,4 @@
-package com.astraios.auth.domain.dto;
+package com.astraios.auth.domain.vo;
 
 import lombok.Data;
 
@@ -6,5 +6,6 @@ import lombok.Data;
 public class LoginResult {
     int status;
     String msg;
-    String token;
+    String accessToken;
+    String refreshToken;
 }
