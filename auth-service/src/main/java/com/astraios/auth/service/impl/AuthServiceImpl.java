@@ -2,6 +2,7 @@ package com.astraios.auth.service.impl;
 
 import com.astraios.auth.contants.AuthConstants;
 import com.astraios.auth.domain.dto.LoginRequest;
+import com.astraios.auth.domain.dto.RefreshRequest;
 import com.astraios.auth.domain.vo.LoginResult;
 import com.astraios.auth.domain.dto.RegisterRequest;
 import com.astraios.auth.domain.vo.RefreshResult;
@@ -42,14 +43,14 @@ public class AuthServiceImpl implements AuthService {
     private final StringRedisTemplate redisTemplate;
 
     @Override
-    public LoginResult login(LoginRequest request) {
+    public ResponseEntity<?> login(LoginRequest request) {
         try {
             LoginResult loginResult = new LoginResult();
             // 1.校验请求
             if (!StringUtils.hasText(request.getUsername()) || !StringUtils.hasText(request.getPassword())){
                 loginResult.setMsg("Invalid username or password");
                 loginResult.setStatus(HttpStatus.UNAUTHORIZED.value());
-                return loginResult;
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(loginResult);
             }
 
             // 2. 封装认证请求
@@ -59,22 +60,33 @@ public class AuthServiceImpl implements AuthService {
             Authentication auth = authenticationManager.authenticate(requestAuth);
 
             // 4.获取认证结果
-            UserDetails details = (UserDetails) auth.getPrincipal();
+            String userId = (String) auth.getPrincipal();  //需获取的是userId
 
-            //5.生成token并返回
-            String accessToken = JwtTokenProvider.generateToken(details.getUsername(), TOKEN_EXPIRATION_TIME);
-            loginResult.setAccessToken(accessToken);
-            String refreshToken = JwtTokenProvider.generateToken(details.getUsername(), TOKEN_REFRESH_TIME);
+            // 5.生成token
+            String accessToken =  jwtTokenProvider.generateAccessToken(userId, request.getUsername());
+            String refreshToken = jwtTokenProvider.generateRefreshToken(userId);
+
+            // 6. 将 Refresh Token 存入 Redis，设置过期时间
+            String redisKey = AuthConstants.REDIS_REFRESH_TOKEN_PREFIX  + userId;
+            redisTemplate.opsForValue().set(
+                    redisKey,
+                    refreshToken,
+                    JwtTokenProvider.REFRESH_TOKEN_EXPIRATION,
+                    TimeUnit.MILLISECONDS
+            );
+
+            //7.返回结果
             loginResult.setRefreshToken(refreshToken);
+            loginResult.setAccessToken(accessToken);
             loginResult.setStatus(HttpStatus.OK.value());
             loginResult.setMsg("Successfully logged in");
-            return loginResult;
+            return ResponseEntity.ok(loginResult);
         }
         catch (Exception e) {
             LoginResult loginResult = new LoginResult();
             loginResult.setMsg(e.getMessage());
             loginResult.setStatus(HttpStatus.UNAUTHORIZED.value());
-            return loginResult;
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(loginResult);
         }
     }
 
@@ -90,10 +102,9 @@ public class AuthServiceImpl implements AuthService {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(registerResult);
             }
 
-            // 2. 密码加密
-            String encodedPassword = passwordEncoder.encode(request.getPassword());
 
-            // 3. TODO RPC调用user服务注册
+            // 2. TODO RPC调用user服务注册
+            registerResult.setStatus(HttpStatus.OK.value());
             registerResult.setMsg("success");
             return ResponseEntity.ok(registerResult);
 
@@ -103,11 +114,11 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
-    public ResponseEntity<?> refreshToken(String refreshToken) {
+    public ResponseEntity<?> refreshToken(RefreshRequest request) {
         // 1. 校验格式基本合法性 (签名校验)
         Claims claims;
         try {
-            claims = jwtTokenProvider.parseToken(refreshToken);
+            claims = jwtTokenProvider.parseToken(request.getRefreshToken());
         } catch (Exception e) {
             throw new RuntimeException("Invalid Refresh Token");
         }
@@ -115,21 +126,19 @@ public class AuthServiceImpl implements AuthService {
         String userId = claims.getSubject();
         String redisKey = AuthConstants.REDIS_REFRESH_TOKEN_PREFIX + userId;
 
-        // 2. 核心校验：Redis 中是否存在该 Token
-        // 如果用户注销了，Redis 中该 Key 会被删除，此处即可拦截
+        // 2. 校验Redis 中是否存在该 Token
         String storedRefreshToken = redisTemplate.opsForValue().get(redisKey);
 
-        if (storedRefreshToken == null || !storedRefreshToken.equals(refreshToken)) {
+        if (storedRefreshToken == null || !storedRefreshToken.equals(request.getRefreshToken())) {
             throw new RuntimeException("Refresh Token expired or invalid");
         }
 
         // 3. 生成新的 Access Token
         // TODO gRPC调用获取用户名
-        String username = "UserFromDB";
+        String username = "123";
         String newAccessToken = jwtTokenProvider.generateAccessToken(userId, username);
 
-        // 4. (可选但推荐) Refresh Token 轮换机制 (Rotation)
-        // 为了安全，每次刷新时，也生成一个新的 Refresh Token，并废弃旧的
+        // 4. refreshToken轮换，再重新生成refreshToken
         String newRefreshToken = jwtTokenProvider.generateRefreshToken(userId);
         redisTemplate.opsForValue().set(
                 redisKey,
@@ -141,6 +150,7 @@ public class AuthServiceImpl implements AuthService {
         RefreshResult result = new RefreshResult();
         result.setAccessToken(newAccessToken);
         result.setRefreshToken(newRefreshToken);
+        result.setStatus(HttpStatus.OK.value());
         return ResponseEntity.ok(result);
     }
 }

@@ -6,8 +6,6 @@ server:
 spring:
   application:
     name: auth-service
-  profiles:
-    active: dev
   cloud:
     nacos:
       server-addr: localhost:8848
@@ -26,3 +24,13 @@ spring:
       discovery:
         enabled: false
         register-enabled: false
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      database: 0
+logging:
+  level:
+    org:
+      springframework:
+        security: DEBUG
