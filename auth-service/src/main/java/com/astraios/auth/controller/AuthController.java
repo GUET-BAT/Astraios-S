@@ -2,7 +2,8 @@ package com.astraios.auth.controller;
 
 
 import com.astraios.auth.domain.dto.LoginRequest;
-import com.astraios.auth.domain.dto.LoginResult;
+import com.astraios.auth.domain.dto.RefreshRequest;
+import com.astraios.auth.domain.vo.LoginResult;
 import com.astraios.auth.domain.dto.RegisterRequest;
 import com.astraios.auth.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -15,8 +16,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Map;
+
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/auth")
 @RequiredArgsConstructor
 @Tag(name = "用户认证", description = "提供用户认证相关接口")
 @Slf4j
@@ -25,7 +28,7 @@ public class AuthController {
 
     @Operation(summary = "用户登录")
     @PostMapping("/login")
-    public LoginResult login(@RequestBody LoginRequest loginRequest){
+    public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest){
         return authService.login(loginRequest);
     }
 
@@ -36,5 +39,9 @@ public class AuthController {
         return authService.register(request);
     }
 
-
+    @Operation(summary = "刷新令牌")
+    @PostMapping("/refresh/token")
+    public ResponseEntity<?> refresh(@RequestBody RefreshRequest request){
+        return authService.refreshToken(request);
+    }
 }

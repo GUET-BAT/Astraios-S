@@ -82,7 +82,11 @@
 			<artifactId>jjwt-jackson</artifactId>
 		</dependency>
 
-
+		<!-- Redis  -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-redis</artifactId>
+		</dependency>
 
 		<!-- Test -->
 		<dependency>

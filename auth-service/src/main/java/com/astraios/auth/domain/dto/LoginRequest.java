@@ -7,4 +7,5 @@ import lombok.Data;
 public class LoginRequest {
     String username;
     String password;
+    int type;
 }

@@ -1,4 +1,4 @@
-package com.astraios.auth.domain.dto;
+package com.astraios.auth.domain.vo;
 
 import lombok.Data;
 
