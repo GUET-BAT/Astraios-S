@@ -42,7 +42,7 @@ public class SecurityConfig {
                                 "/v3/api-docs/**",
                                 "/swagger-resources/**",
                                 "/webjars/**",
-                                "/doc.html" ).permitAll()
+                                "/.well-known/jwks.json" ).permitAll()
                         .anyRequest().authenticated()
                 );
 //                // 开启 OAuth2 登录
