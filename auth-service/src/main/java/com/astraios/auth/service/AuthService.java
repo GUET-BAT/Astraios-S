@@ -12,9 +12,9 @@ import java.util.Map;
 
 
 public interface AuthService {
-    ResponseEntity<?> login(LoginRequest loginRequest);
+    LoginResult login(LoginRequest loginRequest);
 
-    ResponseEntity<RegisterResult> register(RegisterRequest request);
+    RegisterResult register(RegisterRequest request);
 
-    ResponseEntity<?> refreshToken(RefreshRequest request);
+    RefreshResult refreshToken(RefreshRequest request);
 }

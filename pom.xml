@@ -28,6 +28,10 @@
 		<mapstruct.version>1.6.3</mapstruct.version>
 		<jwt.version>0.13.0</jwt.version>
 		<nimbus.version>10.6</nimbus.version>
+		<grpc.version>1.76.2</grpc.version>
+		<grpc.client.version>3.1.0.RELEASE</grpc.client.version>
+		<protobuf.version>3.23.4</protobuf.version>
+		<protobuf-plugin.version>0.6.1</protobuf-plugin.version>
 	</properties>
 
 	<!-- ========== 依赖版本管理 ========== -->
@@ -98,12 +102,36 @@
 				<scope>compile</scope>
 			</dependency>
 
+			<!-- grpc -->
+			<dependency>
+				<groupId>io.grpc</groupId>
+				<artifactId>grpc-stub</artifactId>
+				<version>${grpc.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>io.grpc</groupId>
+				<artifactId>grpc-protobuf</artifactId>
+				<version>${grpc.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>net.devh</groupId>
+				<artifactId>grpc-client-spring-boot-starter</artifactId>
+				<version>${grpc.client.version}</version>
+			</dependency>
 		</dependencies>
 
 	</dependencyManagement>
 
 	<!-- ========== 插件管理 ========== -->
 	<build>
+		<extensions>
+			<extension>
+				<groupId>kr.motd.maven</groupId>
+				<artifactId>os-maven-plugin</artifactId>
+				<version>1.7.0</version>
+			</extension>
+		</extensions>
 		<pluginManagement>
 		<plugins>
 			<plugin>
@@ -135,6 +163,26 @@
 						</exclude>
 					</excludes>
 				</configuration>
+			</plugin>
+
+			<plugin>
+				<groupId>org.xolstice.maven.plugins</groupId>
+				<artifactId>protobuf-maven-plugin</artifactId>
+				<version>${protobuf-plugin.version}</version>
+				<configuration>
+					<protocArtifact>com.google.protobuf:protoc:${protobuf.version}:exe:${os.detected.classifier}</protocArtifact>
+					<pluginId>grpc-java</pluginId>
+					<pluginArtifact>io.grpc:protoc-gen-grpc-java:${grpc.version}:exe:${os.detected.classifier}</pluginArtifact>
+					<protoSourceRoot>${project.basedir}/../api</protoSourceRoot>
+				</configuration>
+				<executions>
+					<execution>
+						<goals>
+							<goal>compile</goal>
+							<goal>compile-custom</goal>
+						</goals>
+					</execution>
+				</executions>
 			</plugin>
 		</plugins>
 		</pluginManagement>
