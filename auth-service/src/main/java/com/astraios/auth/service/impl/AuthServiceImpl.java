@@ -91,7 +91,7 @@ public class AuthServiceImpl implements AuthService {
         
         // 2. RPC调用user服务注册
         com.astraios.grpc.user.RegisterRequest rpcRequest = com.astraios.grpc.user.RegisterRequest.newBuilder()
-                .setUsername("admin")
+                .setUsername(request.getUsername())
                 .setPassword(request.getPassword())
                 .build();
         com.astraios.grpc.user.RegisterResponse rpcResponse = userServiceStub.register(rpcRequest);
