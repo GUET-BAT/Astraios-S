@@ -4,6 +4,6 @@ import lombok.Data;
 
 @Data
 public class RegisterResult {
-    int status;
+    int code;
     String msg;
 }

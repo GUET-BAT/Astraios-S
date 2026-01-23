@@ -8,6 +8,7 @@ import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import lombok.extern.slf4j.Slf4j;
 import org.springdoc.core.customizers.GlobalOpenApiCustomizer;
+import org.springdoc.core.models.GroupedOpenApi;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -22,6 +23,18 @@ public class SwaggerConfig {
 
     @Value("${server.port:8081}")
     private String port;
+    
+    /**
+     * 配置 API 分组，只扫描当前项目的 controller
+     */
+    @Bean
+    public GroupedOpenApi publicApi() {
+        return GroupedOpenApi.builder()
+                .group("astraios-api")
+                .pathsToMatch("/api/**")
+                .packagesToScan("com.astraios.auth.controller")
+                .build();
+    }
 
     @Bean
     public GlobalOpenApiCustomizer orderGlobalOpenApiCustomizer() {
