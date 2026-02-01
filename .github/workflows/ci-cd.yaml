@@ -26,20 +26,34 @@ jobs:
           # Find directories ending with 'service' that have changes
           CHANGED_SERVICES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -E '.*service/' | awk -F/ '{print $1}' | sort | uniq | grep 'service$')
           
-          # Convert to JSON array
-          JSON_ARRAY="["
+          # Convert to JSON array with service type detection
+          JSON_ARRAY="[]"
           first=true
           for service in $CHANGED_SERVICES; do
             if [ -d "$service" ]; then
+              # Detect service type
+              if [ -f "$service/go.mod" ]; then
+                service_type="go"
+              elif [ -f "$service/pom.xml" ]; then
+                service_type="java"
+              else
+                echo "Warning: Cannot detect build type for $service, skipping..."
+                continue
+              fi
+              
               if [ "$first" = true ]; then
+                JSON_ARRAY="["
                 first=false
               else
                 JSON_ARRAY="$JSON_ARRAY,"
               fi
-              JSON_ARRAY="$JSON_ARRAY\"$service\""
+              JSON_ARRAY="$JSON_ARRAY{\"name\":\"$service\",\"type\":\"$service_type\"}"
             fi
           done
-          JSON_ARRAY="$JSON_ARRAY]"
+          
+          if [ "$first" = false ]; then
+            JSON_ARRAY="$JSON_ARRAY]"
+          fi
           
           echo "Detected changed services: $JSON_ARRAY"
           
@@ -61,21 +75,37 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
+      # Setup Java for Java-based services
       - name: Set up JDK 21
+        if: matrix.service.type == 'java'
         uses: actions/setup-java@v4
         with:
           java-version: '21'
           distribution: 'temurin'
           cache: 'maven'
+      
+      # Setup Go for Go-based services
+      - name: Set up Go
+        if: matrix.service.type == 'go'
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache-dependency-path: ${{ matrix.service.name }}/go.sum
           
-      - name: Build with Maven
+      # Build Java service
+      - name: Build Java service with Maven
+        if: matrix.service.type == 'java'
         run: |
-          # Build the specific service (and dependencies if necessary)
-          # Assuming root pom can build everything or we build individually
-          # If we run from root with -pl, it builds specific module
-          ./mvnw clean package -pl ${{ matrix.service }} -am -DskipTests
-          # Run tests separately or part of package. User requested "check", so we should run tests.
-          # ./mvnw test -pl ${{ matrix.service }} -am
+          # Build the specific service
+          ./mvnw clean package -pl ${{ matrix.service.name }} -am -DskipTests
+      
+      # Build Go service
+      - name: Build Go service
+        if: matrix.service.type == 'go'
+        run: |
+          cd ${{ matrix.service.name }}
+          go mod download
+          go build -v ./...
           
       - name: Login to Harbor
         uses: docker/login-action@v3
@@ -87,13 +117,14 @@ jobs:
       - name: Build and Push Docker image
         run: |
           IMAGE_TAG=${{ github.sha }}
+          SERVICE_NAME=${{ matrix.service.name }}
           # Check if Dockerfile exists in service directory
-          if [ -f "${{ matrix.service }}/Dockerfile" ]; then
+          if [ -f "$SERVICE_NAME/Dockerfile" ]; then
              # Build from root context
-             docker build -f ${{ matrix.service }}/Dockerfile -t $HARBOR_URL/$HARBOR_PROJECT/${{ matrix.service }}:$IMAGE_TAG .
-             docker push $HARBOR_URL/$HARBOR_PROJECT/${{ matrix.service }}:$IMAGE_TAG
+             docker build -f $SERVICE_NAME/Dockerfile -t $HARBOR_URL/$HARBOR_PROJECT/$SERVICE_NAME:$IMAGE_TAG .
+             docker push $HARBOR_URL/$HARBOR_PROJECT/$SERVICE_NAME:$IMAGE_TAG
           else
-             echo "No Dockerfile found for ${{ matrix.service }}"
+             echo "No Dockerfile found for $SERVICE_NAME"
              exit 1
           fi
 
@@ -125,8 +156,9 @@ jobs:
           chmod 600 ~/.kube/config
           
           IMAGE_TAG=${{ github.sha }}
+          SERVICE_NAME=${{ matrix.service.name }}
           
-          helm upgrade --install ${{ matrix.service }} ./deploy/charts/microservice \
-            --set image.repository=$HARBOR_URL/$HARBOR_PROJECT/${{ matrix.service }} \
+          helm upgrade --install $SERVICE_NAME ./deploy/charts/microservice \
+            --set image.repository=$HARBOR_URL/$HARBOR_PROJECT/$SERVICE_NAME \
             --set image.tag=$IMAGE_TAG \
-            --set fullnameOverride=${{ matrix.service }}
+            --set fullnameOverride=$SERVICE_NAME
