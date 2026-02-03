@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "nacos.fullname" . }}-config
+  labels:
+    {{- include "nacos.labels" . | nindent 4 }}
+data:
+  MODE: {{ .Values.mode | quote }}
+  SPRING_DATASOURCE_PLATFORM: "mysql"
+  MYSQL_SERVICE_HOST: {{ .Values.externalDb.host | quote }}
+  MYSQL_SERVICE_PORT: {{ .Values.externalDb.port | quote }}
+  MYSQL_SERVICE_DB_NAME: {{ .Values.externalDb.dbName | quote }}
+  MYSQL_SERVICE_USER: {{ .Values.externalDb.user | quote }}
+  MYSQL_SERVICE_PASSWORD: {{ .Values.externalDb.password | quote }}
+  MYSQL_SERVICE_DB_PARAM: {{ .Values.externalDb.param | quote }}
+  JVM_XMS: {{ .Values.jvm.xms | quote }}
+  JVM_XMX: {{ .Values.jvm.xmx | quote }}
+  JVM_XMN: {{ .Values.jvm.xmn | quote }}
+  NACOS_AUTH_ENABLE: {{ .Values.auth.enabled | quote }}

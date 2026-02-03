@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+option java_package = "com.astraios.grpc.common";
+option java_multiple_files = true;
+option go_package = "github.com/astraios/grpc/common";
+
+package common;
+
+message LoadConfigRequest {
+  string serviceName = 1; // e.g. "user-service"
+}
+
+message LoadConfigResponse {
+  int32 code = 1; // 状态码，0表示成功
+  string message = 2; // 状态消息
+  string config = 3; // 配置内容，通常是JSON格式
+}
+
+service CommonService {
+    rpc LoadConfig(LoadConfigRequest) returns (LoadConfigResponse);
+}
