@@ -15,7 +15,11 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
 
 
-@Configuration
+/**
+ * Swagger配置类
+ * 注意：由于项目已改为gRPC架构，不再需要REST API文档，此类已禁用
+ */
+// @Configuration
 @Slf4j
 public class SwaggerConfig {
     @Value(value = "${host:localhost}")
