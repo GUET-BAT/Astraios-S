@@ -1,5 +1,5 @@
-# Build stage
-FROM maven:3.9-eclipse-temurin-21-alpine AS build
+# Build stage (non-Alpine to ensure protoc-gen-grpc-java runs with glibc)
+FROM maven:3.9-eclipse-temurin-21 AS build
 WORKDIR /app
 
 # Copy the parent pom
