@@ -104,8 +104,10 @@ jobs:
       # Test Java service
       - name: Test Java service with Maven
         if: matrix.service.type == 'java'
+        working-directory: ${{ matrix.service.name }}
         run: |
-          ./mvnw -pl ${{ matrix.service.name }} -am test
+          chmod +x mvnw
+          ./mvnw test
       
       # Test Go service
       - name: Test Go service
@@ -147,9 +149,10 @@ jobs:
       # Build Java service
       - name: Build Java service with Maven
         if: matrix.service.type == 'java'
+        working-directory: ${{ matrix.service.name }}
         run: |
-          # Build the specific service
-          ./mvnw clean package -pl ${{ matrix.service.name }} -am -DskipTests
+          chmod +x mvnw
+          ./mvnw clean package -DskipTests
       
       # Build Go service
       - name: Build Go service
