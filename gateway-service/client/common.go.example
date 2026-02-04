@@ -19,8 +19,8 @@ func NewCommonClient(c zrpc.RpcClientConf) (*CommonClient, error) {
 }
 
 // LoadConfig 加载配置
-func (c *CommonClient) LoadConfig(ctx context.Context, serviceName string) (*common.LoadConfigResponse, error) {
+func (c *CommonClient) LoadConfig(ctx context.Context, nacosDataId string) (*common.LoadConfigResponse, error) {
 	return c.client.LoadConfig(ctx, &common.LoadConfigRequest{
-		ServiceName: serviceName,
+		NacosDataId: nacosDataId,
 	})
 }

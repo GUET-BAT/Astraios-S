@@ -7,7 +7,7 @@ option go_package = "github.com/astraios/grpc/common";
 package common;
 
 message LoadConfigRequest {
-  string serviceName = 1; // e.g. "user-service"
+  string nacosDataId = 1; // e.g. "nacos.common-service.core.config" (suffix defaults to .yaml)
 }
 
 message LoadConfigResponse {

@@ -42,7 +42,7 @@ config:
 nacos:
   enabled: true
   # If set, use an existing Secret with the keys below instead of creating a new one.
-  existingSecret: ""
+  existingSecret: "nacos-credential"
   serverAddr: "nacos:8848"
   username: "nacos"
   password: "nacos"

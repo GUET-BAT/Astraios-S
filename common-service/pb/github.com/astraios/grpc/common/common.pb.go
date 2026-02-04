@@ -23,7 +23,7 @@ const (
 
 type LoadConfigRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	ServiceName   string                 `protobuf:"bytes,1,opt,name=serviceName,proto3" json:"serviceName,omitempty"` // e.g. "user-service"
+	NacosDataId   string                 `protobuf:"bytes,1,opt,name=nacosDataId,proto3" json:"nacosDataId,omitempty"` // e.g. "nacos.common-service.core.config" (suffix defaults to .yaml)
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -58,9 +58,9 @@ func (*LoadConfigRequest) Descriptor() ([]byte, []int) {
 	return file_common_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *LoadConfigRequest) GetServiceName() string {
+func (x *LoadConfigRequest) GetNacosDataId() string {
 	if x != nil {
-		return x.ServiceName
+		return x.NacosDataId
 	}
 	return ""
 }
@@ -131,7 +131,7 @@ const file_common_proto_rawDesc = "" +
 	"\n" +
 	"\fcommon.proto\x12\x06common\"5\n" +
 	"\x11LoadConfigRequest\x12 \n" +
-	"\vserviceName\x18\x01 \x01(\tR\vserviceName\"Z\n" +
+	"\vnacosDataId\x18\x01 \x01(\tR\vnacosDataId\"Z\n" +
 	"\x12LoadConfigResponse\x12\x12\n" +
 	"\x04code\x18\x01 \x01(\x05R\x04code\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\x12\x16\n" +

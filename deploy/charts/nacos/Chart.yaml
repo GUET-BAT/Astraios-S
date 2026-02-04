@@ -1,6 +1,0 @@
-apiVersion: v2
-name: nacos
-description: A Helm chart for Nacos Server with external MySQL support
-type: application
-version: 0.1.0
-appVersion: "2.3.2"
