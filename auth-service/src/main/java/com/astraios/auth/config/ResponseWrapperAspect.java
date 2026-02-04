@@ -21,11 +21,13 @@ import jakarta.servlet.http.HttpServletRequest;
  * - AOP 与 ResponseBodyAdvice 的性能差异很小（通常 < 1ms）
  * - 对于 REST API，网络 I/O 是主要瓶颈，拦截器开销可忽略
  * - 如果追求极致性能，可以考虑使用 ResponseBodyAdvice（需要解决兼容性问题）
+ * 
+ * 注意：由于项目已改为gRPC架构，不再需要REST API响应封装，此类已禁用
  */
 @Slf4j
-@Aspect
-@Component
-@Order(1)
+// @Aspect
+// @Component
+// @Order(1)
 public class ResponseWrapperAspect {
 
     /**

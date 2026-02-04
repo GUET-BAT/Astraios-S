@@ -30,6 +30,9 @@
 		<nimbus.version>10.6</nimbus.version>
 		<grpc.version>1.76.2</grpc.version>
 		<grpc.client.version>3.1.0.RELEASE</grpc.client.version>
+		<grpc.test.version>1.78.0</grpc.test.version>
+		<grpc.server.version>3.1.0.RELEASE</grpc.server.version>
+
 		<protobuf.version>3.23.4</protobuf.version>
 		<protobuf-plugin.version>0.6.1</protobuf-plugin.version>
 	</properties>
@@ -37,6 +40,15 @@
 	<!-- ========== 依赖版本管理 ========== -->
 	<dependencyManagement>
 		<dependencies>
+			<!-- 统一管理所有 io.grpc:* 版本，避免与 grpc-spring-boot-starter 传递依赖版本冲突 -->
+			<dependency>
+				<groupId>io.grpc</groupId>
+				<artifactId>grpc-bom</artifactId>
+				<version>${grpc.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+
 			<dependency>
 				<groupId>org.springframework.cloud</groupId>
 				<artifactId>spring-cloud-dependencies</artifactId>
@@ -114,10 +126,23 @@
 				<version>${grpc.version}</version>
 			</dependency>
 
+			<!-- gRPC Test -->
+			<dependency>
+				<groupId>io.grpc</groupId>
+				<artifactId>grpc-testing</artifactId>
+				<version>${grpc.version}</version>
+				<scope>test</scope>
+			</dependency>
+
 			<dependency>
 				<groupId>net.devh</groupId>
 				<artifactId>grpc-client-spring-boot-starter</artifactId>
 				<version>${grpc.client.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>net.devh</groupId>
+				<artifactId>grpc-server-spring-boot-starter</artifactId>
+				<version>${grpc.server.version}</version>
 			</dependency>
 		</dependencies>
 
@@ -148,8 +173,8 @@
 							<artifactId>lombok</artifactId>
 						</path>
 					</annotationProcessorPaths>
-					<source>21</source>
-					<target>21</target>
+					<source>${java.version}</source>
+					<target>${java.version}</target>
 				</configuration>
 			</plugin>
 			<plugin>

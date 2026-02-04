@@ -3,41 +3,30 @@ package com.astraios.auth.service.impl;
 import com.astraios.auth.contants.AuthConstants;
 import com.astraios.auth.domain.dto.LoginRequest;
 import com.astraios.auth.domain.dto.RefreshRequest;
-import com.astraios.auth.domain.vo.LoginResult;
 import com.astraios.auth.domain.dto.RegisterRequest;
+import com.astraios.auth.domain.vo.LoginResult;
 import com.astraios.auth.domain.vo.RefreshResult;
 import com.astraios.auth.domain.vo.RegisterResult;
 import com.astraios.auth.service.AuthService;
 import com.astraios.auth.utils.JwtTokenProvider;
-import com.astraios.grpc.user.RegisterResponse;
 import com.astraios.grpc.user.UserDataRequest;
 import com.astraios.grpc.user.UserDataResponse;
 import com.astraios.grpc.user.UserServiceGrpc;
-import com.nimbusds.oauth2.sdk.token.RefreshToken;
+import com.astraios.grpc.user.VerifyPasswordRequest;
+import com.astraios.grpc.user.VerifyPasswordResponse;
 import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
 import net.devh.boot.grpc.client.inject.GrpcClient;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
-
-    private final AuthenticationManager authenticationManager;
-    private final PasswordEncoder passwordEncoder;
 
     private final JwtTokenProvider jwtTokenProvider;
 
@@ -53,14 +42,24 @@ public class AuthServiceImpl implements AuthService {
             throw new RuntimeException("Invalid username or password");
         }
 
-        // 2. 封装认证请求
-        Authentication requestAuth = new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword());
+        // 2. 调用 user-service 校验账号密码
+        VerifyPasswordRequest rpcRequest = VerifyPasswordRequest.newBuilder()
+                .setUsername(request.getUsername())
+                .setPassword(request.getPassword())
+                .build();
 
-        // 3.执行认证
-        Authentication auth = authenticationManager.authenticate(requestAuth);
+        VerifyPasswordResponse rpcResponse;
+        try {
+            rpcResponse = userServiceStub.verifyPassword(rpcRequest);
+        } catch (Exception e) {
+            throw new RuntimeException("用户服务不可用");
+        }
 
-        // 4.获取认证结果
-        String userId = (String) auth.getPrincipal();  //需获取的是userId
+        if (!rpcResponse.getSuccess()) {
+            throw new RuntimeException("Invalid username or password");
+        }
+
+        String userId = rpcResponse.getUserId();
 
         // 5.生成token
         String accessToken =  jwtTokenProvider.generateAccessToken(userId, request.getUsername());
