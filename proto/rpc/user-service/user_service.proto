@@ -36,11 +36,9 @@ message RegisterResponse {
 message UserDataRequest{
   string username = 1;
   string userid = 2;
-
 }
 
 message UserDataResponse{
   string username = 1;
   string userid = 2;
-
 }

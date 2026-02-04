@@ -1,0 +1,242 @@
+name: CI/CD Pipeline
+
+on:
+  pull_request:
+    branches: [ "main" ]
+    types: [opened, synchronize, reopened, labeled]
+  workflow_dispatch:
+
+env:
+  HARBOR_URL: ${{ secrets.HARBOR_URL }}
+  HARBOR_PROJECT: ${{ secrets.HARBOR_PROJECT }}
+  HARBOR_CHART_PROJECT: ${{ secrets.HARBOR_CHART_PROJECT }}
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+      has_changes: ${{ steps.set-matrix.outputs.has_changes }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get changed services
+        id: set-matrix
+        run: |
+          # Ensure base branch is available for diff (PR uses base_ref, manual defaults to main)
+          BASE_REF="${{ github.base_ref }}"
+          if [ -z "$BASE_REF" ]; then
+            BASE_REF="main"
+          fi
+          git fetch origin "$BASE_REF" --depth=1
+
+          # Find directories ending with 'service' that have changes
+          CHANGED_SERVICES=$(git diff --name-only origin/$BASE_REF...HEAD | grep -E '.*service/' | awk -F/ '{print $1}' | sort | uniq | grep 'service$')
+          
+          # Convert to JSON array with service type detection
+          JSON_ARRAY="[]"
+          first=true
+          for service in $CHANGED_SERVICES; do
+            if [ -d "$service" ]; then
+              # Detect service type
+              if [ -f "$service/go.mod" ]; then
+                service_type="go"
+              elif [ -f "$service/pom.xml" ]; then
+                service_type="java"
+              else
+                echo "Warning: Cannot detect build type for $service, skipping..."
+                continue
+              fi
+              
+              if [ "$first" = true ]; then
+                JSON_ARRAY="["
+                first=false
+              else
+                JSON_ARRAY="$JSON_ARRAY,"
+              fi
+              JSON_ARRAY="$JSON_ARRAY{\"name\":\"$service\",\"type\":\"$service_type\"}"
+            fi
+          done
+          
+          if [ "$first" = false ]; then
+            JSON_ARRAY="$JSON_ARRAY]"
+          fi
+          
+          echo "Detected changed services: $JSON_ARRAY"
+          
+          echo "matrix=$JSON_ARRAY" >> $GITHUB_OUTPUT
+          if [ "$JSON_ARRAY" == "[]" ]; then
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          fi
+
+  test:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.has_changes == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: ${{fromJson(needs.detect-changes.outputs.matrix)}}
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v4
+      
+      # Setup Java for Java-based services
+      - name: Set up JDK 21
+        if: matrix.service.type == 'java'
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+      
+      # Setup Go for Go-based services
+      - name: Set up Go
+        if: matrix.service.type == 'go'
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache-dependency-path: ${{ matrix.service.name }}/go.sum
+
+      # Test Java service
+      - name: Test Java service with Maven
+        if: matrix.service.type == 'java'
+        run: |
+          ./mvnw -pl ${{ matrix.service.name }} -am test
+      
+      # Test Go service
+      - name: Test Go service
+        if: matrix.service.type == 'go'
+        run: |
+          cd ${{ matrix.service.name }}
+          go mod download
+          go test ./...
+
+  build-and-push:
+    needs: [detect-changes, test]
+    if: needs.detect-changes.outputs.has_changes == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: ${{fromJson(needs.detect-changes.outputs.matrix)}}
+      max-parallel: 1
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v4
+      
+      # Setup Java for Java-based services
+      - name: Set up JDK 21
+        if: matrix.service.type == 'java'
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+      
+      # Setup Go for Go-based services
+      - name: Set up Go
+        if: matrix.service.type == 'go'
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache-dependency-path: ${{ matrix.service.name }}/go.sum
+          
+      # Build Java service
+      - name: Build Java service with Maven
+        if: matrix.service.type == 'java'
+        run: |
+          # Build the specific service
+          ./mvnw clean package -pl ${{ matrix.service.name }} -am -DskipTests
+      
+      # Build Go service
+      - name: Build Go service
+        if: matrix.service.type == 'go'
+        run: |
+          cd ${{ matrix.service.name }}
+          go mod download
+          go build -v ./...
+          
+      - name: Login to Harbor
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.HARBOR_URL }}
+          username: ${{ secrets.HARBOR_USERNAME }}
+          password: ${{ secrets.HARBOR_PASSWORD }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: v3.12.0
+          
+      - name: Build and Push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.service.name }}/Dockerfile
+          push: true
+          tags: ${{ secrets.HARBOR_URL }}/${{ secrets.HARBOR_PROJECT }}/${{ matrix.service.name }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Push Helm chart to Harbor
+        run: |
+          SERVICE_NAME=${{ matrix.service.name }}
+          CHART_DIR=./deploy/charts/$SERVICE_NAME
+          if [ ! -d "$CHART_DIR" ]; then
+            echo "No Helm chart found for $SERVICE_NAME at $CHART_DIR, skip chart push."
+            exit 0
+          fi
+
+          helm registry login $HARBOR_URL -u "${{ secrets.HARBOR_CHART_USERNAME }}" -p "${{ secrets.HARBOR_CHART_PASSWORD }}"
+
+          VERSION="0.0.${{ github.run_number }}"
+          APP_VERSION="${{ github.sha }}"
+          PACKAGE_PATH=$(helm package "$CHART_DIR" --version "$VERSION" --app-version "$APP_VERSION" | awk -F': ' '{print $2}')
+          if [ -z "$PACKAGE_PATH" ]; then
+            echo "Failed to package chart for $SERVICE_NAME"
+            exit 1
+          fi
+
+          helm push "$PACKAGE_PATH" "oci://$HARBOR_URL/$HARBOR_CHART_PROJECT"
+
+  deploy:
+    needs: [detect-changes, build-and-push]
+    if: github.event_name == 'workflow_dispatch' && needs.detect-changes.outputs.has_changes == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: ${{fromJson(needs.detect-changes.outputs.matrix)}}
+      max-parallel: 1
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: v3.12.0
+          
+      - name: Set up Kubectl
+        uses: azure/setup-kubectl@v3
+        
+      - name: Deploy to K8s
+        env:
+          KUBECONFIG_CONTENT: ${{ secrets.KUBE_CONFIG }}
+        run: |
+          mkdir -p ~/.kube
+          printf '%s' "$KUBECONFIG_CONTENT" > ~/.kube/config
+          chmod 600 ~/.kube/config
+          
+          IMAGE_TAG=${{ github.sha }}
+          SERVICE_NAME=${{ matrix.service.name }}
+          
+          helm upgrade --install $SERVICE_NAME ./deploy/charts/$SERVICE_NAME \
+            --set image.repository=$HARBOR_URL/$HARBOR_PROJECT/$SERVICE_NAME \
+            --set image.tag=$IMAGE_TAG \
+            --set fullnameOverride=$SERVICE_NAME

@@ -1,0 +1,44 @@
+package client
+
+import (
+	"context"
+	"github.com/astraio/astraios-gateway/pb/user"
+	"github.com/zeromicro/go-zero/zrpc"
+)
+
+type UserClient struct {
+	client user.UserServiceClient
+}
+
+// NewUserClient 创建用户服务客户端
+func NewUserClient(c zrpc.RpcClientConf) (*UserClient, error) {
+	conn := zrpc.MustNewClient(c)
+	return &UserClient{
+		client: user.NewUserServiceClient(conn.Conn()),
+	}, nil
+}
+
+// VerifyPassword 验证密码
+func (c *UserClient) VerifyPassword(ctx context.Context, username, password string) (*user.VerifyPasswordResponse, error) {
+	return c.client.VerifyPassword(ctx, &user.VerifyPasswordRequest{
+		Username: username,
+		Password: password,
+	})
+}
+
+// Register 注册用户
+func (c *UserClient) Register(ctx context.Context, username, password string, userType int32) (*user.RegisterResponse, error) {
+	return c.client.Register(ctx, &user.RegisterRequest{
+		Username: username,
+		Password: password,
+		Type:     userType,
+	})
+}
+
+// GetUserId 获取用户ID
+func (c *UserClient) GetUserId(ctx context.Context, username, userid string) (*user.UserDataResponse, error) {
+	return c.client.GetUserId(ctx, &user.UserDataRequest{
+		Username: username,
+		Userid:   userid,
+	})
+}

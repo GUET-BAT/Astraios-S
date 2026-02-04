@@ -1,0 +1,103 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "common-service.fullname" . }}
+  labels:
+    {{- include "common-service.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "common-service.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "common-service.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: common-service
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - "-f"
+            - "/etc/common/common.yaml"
+          ports:
+            - name: rpc
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+          # 使用 gRPC 健康检查探针（依赖 common-service 已注册 health 服务）。
+{{- if .Values.probes.liveness.enabled }}
+          livenessProbe:
+            grpc:
+              port: {{ .Values.service.port }}
+{{- if .Values.probes.liveness.grpc.service }}
+              service: {{ .Values.probes.liveness.grpc.service | quote }}
+{{- end }}
+            initialDelaySeconds: {{ .Values.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.liveness.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.liveness.timeoutSeconds }}
+            failureThreshold: {{ .Values.probes.liveness.failureThreshold }}
+            successThreshold: {{ .Values.probes.liveness.successThreshold }}
+{{- end }}
+{{- if .Values.probes.readiness.enabled }}
+          readinessProbe:
+            grpc:
+              port: {{ .Values.service.port }}
+{{- if .Values.probes.readiness.grpc.service }}
+              service: {{ .Values.probes.readiness.grpc.service | quote }}
+{{- end }}
+            initialDelaySeconds: {{ .Values.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.readiness.timeoutSeconds }}
+            failureThreshold: {{ .Values.probes.readiness.failureThreshold }}
+            successThreshold: {{ .Values.probes.readiness.successThreshold }}
+{{- end }}
+{{- if .Values.nacos.enabled }}
+{{- $secretName := .Values.nacos.existingSecret | default (printf "%s-nacos" (include "common-service.fullname" .)) }}
+          env:
+            - name: NACOS_SERVER_ADDR
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $secretName }}
+                  key: serverAddr
+            - name: NACOS_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $secretName }}
+                  key: username
+            - name: NACOS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $secretName }}
+                  key: password
+            - name: NACOS_NAMESPACE
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $secretName }}
+                  key: namespace
+            - name: NACOS_GROUP
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $secretName }}
+                  key: group
+            - name: NACOS_DATA_ID_SUFFIX
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $secretName }}
+                  key: dataIdSuffix
+{{- end }}
+          volumeMounts:
+            - name: config
+              mountPath: /etc/common
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "common-service.fullname" . }}-config
+      nodeSelector:
+        {{- toYaml .Values.nodeSelector | nindent 8 }}
+      tolerations:
+        {{- toYaml .Values.tolerations | nindent 8 }}
+      affinity:
+        {{- toYaml .Values.affinity | nindent 8 }}

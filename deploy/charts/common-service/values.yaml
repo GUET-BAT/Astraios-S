@@ -1,0 +1,56 @@
+replicaCount: 1
+
+image:
+  repository: common-service
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8080
+
+# Probe 配置，可根据部署环境调整时间间隔与阈值。
+probes:
+  liveness:
+    enabled: true
+    grpc:
+      # gRPC 健康检查的服务名，空字符串表示检查整体服务。
+      service: ""
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 2
+    failureThreshold: 3
+    successThreshold: 1
+  readiness:
+    enabled: true
+    grpc:
+      service: ""
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    timeoutSeconds: 2
+    failureThreshold: 3
+    successThreshold: 1
+
+config:
+  name: common.rpc
+  listenOn: 0.0.0.0:8080
+  etcd:
+    hosts:
+      - 127.0.0.1:2379
+    key: common.rpc
+
+nacos:
+  enabled: true
+  # If set, use an existing Secret with the keys below instead of creating a new one.
+  existingSecret: "nacos-credential"
+  serverAddr: "nacos:8848"
+  username: "nacos"
+  password: "nacos"
+  namespace: ""
+  group: "DEFAULT_GROUP"
+  dataIdSuffix: ".yaml"
+
+resources: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}

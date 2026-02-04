@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "common-service.fullname" . }}-config
+  labels:
+    {{- include "common-service.labels" . | nindent 4 }}
+data:
+  common.yaml: |
+    Name: {{ .Values.config.name }}
+    ListenOn: {{ .Values.config.listenOn }}
+    Etcd:
+      Hosts:
+{{- range .Values.config.etcd.hosts }}
+        - {{ . | quote }}
+{{- end }}
+      Key: {{ .Values.config.etcd.key }}
