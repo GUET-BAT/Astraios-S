@@ -5,6 +5,9 @@ WORKDIR /app
 # Copy the parent pom
 COPY pom.xml .
 
+# Copy shared proto definitions (required for gRPC codegen)
+COPY proto/ proto/
+
 # Copy the specific service directory
 COPY auth-service/ auth-service/
 
