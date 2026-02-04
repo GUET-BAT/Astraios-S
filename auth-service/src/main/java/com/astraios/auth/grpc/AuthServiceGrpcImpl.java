@@ -7,6 +7,7 @@ import com.astraios.auth.domain.vo.LoginResult;
 import com.astraios.auth.domain.vo.RefreshResult;
 import com.astraios.auth.service.AuthService;
 import com.astraios.auth.utils.JwtTokenProvider;
+import com.astraios.auth.exception.GrpcStatusException;
 import com.astraios.grpc.auth.AuthServiceGrpc;
 import com.astraios.grpc.auth.Jwk;
 import com.astraios.grpc.auth.JwksResponse;
@@ -16,6 +17,7 @@ import com.astraios.grpc.auth.RefreshTokenRequest;
 import com.astraios.grpc.auth.RefreshTokenResponse;
 import com.google.protobuf.Empty;
 import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -170,20 +172,15 @@ public class AuthServiceGrpcImpl extends AuthServiceGrpc.AuthServiceImplBase {
     }
 
     private void handleException(StreamObserver<?> responseObserver, Exception e) {
-        String message = e.getMessage() == null ? "" : e.getMessage();
-        Status status;
-        if ("Invalid username or password".equals(message)) {
-            status = Status.UNAUTHENTICATED;
-        } else if ("Invalid Refresh Token".equals(message) || "Refresh Token expired or invalid".equals(message)) {
-            status = Status.UNAUTHENTICATED;
-        } else if ("用户服务不可用".equals(message)) {
-            status = Status.UNAVAILABLE;
-        } else if ("register failed".equals(message)) {
-            status = Status.INTERNAL;
-        } else {
-            status = Status.INTERNAL;
+        if (e instanceof GrpcStatusException grpcException) {
+            respondError(responseObserver, grpcException.getStatus(), grpcException.getMessage(), grpcException);
+            return;
         }
-        respondError(responseObserver, status, message.isBlank() ? "request failed" : message, e);
+        if (e instanceof StatusRuntimeException statusRuntimeException) {
+            responseObserver.onError(statusRuntimeException);
+            return;
+        }
+        respondError(responseObserver, Status.INTERNAL, "request failed", e);
     }
 
     private void respondError(StreamObserver<?> responseObserver, Status status, String message, Throwable cause) {

@@ -7,6 +7,7 @@ import com.astraios.auth.domain.dto.RegisterRequest;
 import com.astraios.auth.domain.vo.LoginResult;
 import com.astraios.auth.domain.vo.RefreshResult;
 import com.astraios.auth.domain.vo.RegisterResult;
+import com.astraios.auth.exception.GrpcStatusException;
 import com.astraios.auth.service.AuthService;
 import com.astraios.auth.utils.JwtTokenProvider;
 import com.astraios.grpc.user.UserDataRequest;
@@ -14,6 +15,8 @@ import com.astraios.grpc.user.UserDataResponse;
 import com.astraios.grpc.user.UserServiceGrpc;
 import com.astraios.grpc.user.VerifyPasswordRequest;
 import com.astraios.grpc.user.VerifyPasswordResponse;
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
 import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
 import net.devh.boot.grpc.client.inject.GrpcClient;
@@ -39,7 +42,7 @@ public class AuthServiceImpl implements AuthService {
     public LoginResult login(LoginRequest request) {
         // 1.校验请求
         if (!StringUtils.hasText(request.getUsername()) || !StringUtils.hasText(request.getPassword())){
-            throw new RuntimeException("Invalid username or password");
+            throw new GrpcStatusException(Status.INVALID_ARGUMENT, "Invalid username or password");
         }
 
         // 2. 调用 user-service 校验账号密码
@@ -51,12 +54,14 @@ public class AuthServiceImpl implements AuthService {
         VerifyPasswordResponse rpcResponse;
         try {
             rpcResponse = userServiceStub.verifyPassword(rpcRequest);
+        } catch (StatusRuntimeException e) {
+            throw new GrpcStatusException(Status.UNAVAILABLE, "用户服务不可用", e);
         } catch (Exception e) {
-            throw new RuntimeException("用户服务不可用");
+            throw new GrpcStatusException(Status.UNAVAILABLE, "用户服务不可用", e);
         }
 
         if (!rpcResponse.getSuccess()) {
-            throw new RuntimeException("Invalid username or password");
+            throw new GrpcStatusException(Status.UNAUTHENTICATED, "Invalid username or password");
         }
 
         String userId = rpcResponse.getUserId();
@@ -85,7 +90,7 @@ public class AuthServiceImpl implements AuthService {
     public RegisterResult register(RegisterRequest request) {
         // 1.校验请求
         if (!StringUtils.hasText(request.getUsername()) || !StringUtils.hasText(request.getPassword())){
-            throw new RuntimeException("Invalid username or password");
+            throw new GrpcStatusException(Status.INVALID_ARGUMENT, "Invalid username or password");
         }
         
         // 2. RPC调用user服务注册
@@ -93,13 +98,20 @@ public class AuthServiceImpl implements AuthService {
                 .setUsername(request.getUsername())
                 .setPassword(request.getPassword())
                 .build();
-        com.astraios.grpc.user.RegisterResponse rpcResponse = userServiceStub.register(rpcRequest);
+        com.astraios.grpc.user.RegisterResponse rpcResponse;
+        try {
+            rpcResponse = userServiceStub.register(rpcRequest);
+        } catch (StatusRuntimeException e) {
+            throw new GrpcStatusException(Status.UNAVAILABLE, "用户服务不可用", e);
+        } catch (Exception e) {
+            throw new GrpcStatusException(Status.UNAVAILABLE, "用户服务不可用", e);
+        }
         
         RegisterResult registerResult = new RegisterResult();
         if(rpcResponse.getCode() == 0){
             return registerResult;
         }
-        throw new RuntimeException("register failed");
+        throw new GrpcStatusException(Status.INTERNAL, "register failed");
     }
 
     @Override
@@ -109,7 +121,7 @@ public class AuthServiceImpl implements AuthService {
         try {
             claims = jwtTokenProvider.parseToken(request.getRefreshToken());
         } catch (Exception e) {
-            throw new RuntimeException("Invalid Refresh Token");
+            throw new GrpcStatusException(Status.UNAUTHENTICATED, "Invalid Refresh Token", e);
         }
 
         String userId = claims.getSubject();
@@ -119,12 +131,19 @@ public class AuthServiceImpl implements AuthService {
         String storedRefreshToken = redisTemplate.opsForValue().get(redisKey);
 
         if (storedRefreshToken == null || !storedRefreshToken.equals(request.getRefreshToken())) {
-            throw new RuntimeException("Refresh Token expired or invalid");
+            throw new GrpcStatusException(Status.UNAUTHENTICATED, "Refresh Token expired or invalid");
         }
 
         // 3. 生成新的 Access Token
         UserDataRequest rpcRequest = UserDataRequest.newBuilder().setUserid(userId).build();
-        UserDataResponse  rpcResponse = userServiceStub.getUserId(rpcRequest);
+        UserDataResponse  rpcResponse;
+        try {
+            rpcResponse = userServiceStub.getUserId(rpcRequest);
+        } catch (StatusRuntimeException e) {
+            throw new GrpcStatusException(Status.UNAVAILABLE, "用户服务不可用", e);
+        } catch (Exception e) {
+            throw new GrpcStatusException(Status.UNAVAILABLE, "用户服务不可用", e);
+        }
         String newAccessToken = jwtTokenProvider.generateAccessToken(userId, rpcResponse.getUsername());
 
         // 4. refreshToken轮换，再重新生成refreshToken
