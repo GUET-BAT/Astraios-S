@@ -2,7 +2,7 @@ syntax = "proto3";
 
 option java_package = "com.astraios.grpc.common";
 option java_multiple_files = true;
-option go_package = "github.com/astraios/grpc/common";
+option go_package = "github.com/GUET-BAT/Astraios-S/common-service/pb/commonpb";
 
 package common;
 

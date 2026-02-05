@@ -3,8 +3,8 @@ package svc
 import (
 	"sync"
 
-	"common-service/internal/config"
-	"common-service/internal/nacos"
+	"github.com/GUET-BAT/Astraios-S/common-service/internal/config"
+	"github.com/GUET-BAT/Astraios-S/common-service/internal/nacos"
 )
 
 type ServiceContext struct {

@@ -2,9 +2,9 @@
 // versions:
 // - protoc-gen-go-grpc v1.5.1
 // - protoc             v3.19.4
-// source: user_service.proto
+// source: user.proto
 
-package user
+package userpb
 
 import (
 	context "context"
@@ -21,7 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	UserService_VerifyPassword_FullMethodName = "/user.UserService/VerifyPassword"
 	UserService_Register_FullMethodName       = "/user.UserService/Register"
-	UserService_GetUserId_FullMethodName      = "/user.UserService/GetUserId"
+	UserService_GetUserData_FullMethodName    = "/user.UserService/GetUserData"
 )
 
 // UserServiceClient is the client API for UserService service.
@@ -30,7 +30,7 @@ const (
 type UserServiceClient interface {
 	VerifyPassword(ctx context.Context, in *VerifyPasswordRequest, opts ...grpc.CallOption) (*VerifyPasswordResponse, error)
 	Register(ctx context.Context, in *RegisterRequest, opts ...grpc.CallOption) (*RegisterResponse, error)
-	GetUserId(ctx context.Context, in *UserDataRequest, opts ...grpc.CallOption) (*UserDataResponse, error)
+	GetUserData(ctx context.Context, in *UserDataRequest, opts ...grpc.CallOption) (*UserDataResponse, error)
 }
 
 type userServiceClient struct {
@@ -61,10 +61,10 @@ func (c *userServiceClient) Register(ctx context.Context, in *RegisterRequest, o
 	return out, nil
 }
 
-func (c *userServiceClient) GetUserId(ctx context.Context, in *UserDataRequest, opts ...grpc.CallOption) (*UserDataResponse, error) {
+func (c *userServiceClient) GetUserData(ctx context.Context, in *UserDataRequest, opts ...grpc.CallOption) (*UserDataResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(UserDataResponse)
-	err := c.cc.Invoke(ctx, UserService_GetUserId_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, UserService_GetUserData_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +77,7 @@ func (c *userServiceClient) GetUserId(ctx context.Context, in *UserDataRequest, 
 type UserServiceServer interface {
 	VerifyPassword(context.Context, *VerifyPasswordRequest) (*VerifyPasswordResponse, error)
 	Register(context.Context, *RegisterRequest) (*RegisterResponse, error)
-	GetUserId(context.Context, *UserDataRequest) (*UserDataResponse, error)
+	GetUserData(context.Context, *UserDataRequest) (*UserDataResponse, error)
 	mustEmbedUnimplementedUserServiceServer()
 }
 
@@ -94,8 +94,8 @@ func (UnimplementedUserServiceServer) VerifyPassword(context.Context, *VerifyPas
 func (UnimplementedUserServiceServer) Register(context.Context, *RegisterRequest) (*RegisterResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Register not implemented")
 }
-func (UnimplementedUserServiceServer) GetUserId(context.Context, *UserDataRequest) (*UserDataResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetUserId not implemented")
+func (UnimplementedUserServiceServer) GetUserData(context.Context, *UserDataRequest) (*UserDataResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetUserData not implemented")
 }
 func (UnimplementedUserServiceServer) mustEmbedUnimplementedUserServiceServer() {}
 func (UnimplementedUserServiceServer) testEmbeddedByValue()                     {}
@@ -154,20 +154,20 @@ func _UserService_Register_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
-func _UserService_GetUserId_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _UserService_GetUserData_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(UserDataRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(UserServiceServer).GetUserId(ctx, in)
+		return srv.(UserServiceServer).GetUserData(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: UserService_GetUserId_FullMethodName,
+		FullMethod: UserService_GetUserData_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UserServiceServer).GetUserId(ctx, req.(*UserDataRequest))
+		return srv.(UserServiceServer).GetUserData(ctx, req.(*UserDataRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -188,10 +188,10 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _UserService_Register_Handler,
 		},
 		{
-			MethodName: "GetUserId",
-			Handler:    _UserService_GetUserId_Handler,
+			MethodName: "GetUserData",
+			Handler:    _UserService_GetUserData_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "user_service.proto",
+	Metadata: "user.proto",
 }

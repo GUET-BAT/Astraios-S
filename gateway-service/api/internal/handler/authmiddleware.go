@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/astraio/astraios-gateway/api/internal/svc"
+	"github.com/GUET-BAT/Astraios-S/gateway-service/api/internal/svc"
 )
 
 type HandlerFunc func(http.ResponseWriter, *http.Request)

@@ -2,7 +2,7 @@ package client
 
 import (
 	"context"
-	"github.com/astraio/astraios-gateway/pb/common"
+	"github.com/GUET-BAT/Astraios-S/gateway-service/pb/common"
 	"github.com/zeromicro/go-zero/zrpc"
 )
 

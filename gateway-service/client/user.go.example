@@ -2,7 +2,7 @@ package client
 
 import (
 	"context"
-	"github.com/astraio/astraios-gateway/pb/user"
+	"github.com/GUET-BAT/Astraios-S/gateway-service/pb/user"
 	"github.com/zeromicro/go-zero/zrpc"
 )
 
@@ -35,10 +35,9 @@ func (c *UserClient) Register(ctx context.Context, username, password string, us
 	})
 }
 
-// GetUserId 获取用户ID
-func (c *UserClient) GetUserId(ctx context.Context, username, userid string) (*user.UserDataResponse, error) {
-	return c.client.GetUserId(ctx, &user.UserDataRequest{
-		Username: username,
-		Userid:   userid,
+// GetUserData 获取用户资料
+func (c *UserClient) GetUserData(ctx context.Context, userid string) (*user.UserDataResponse, error) {
+	return c.client.GetUserData(ctx, &user.UserDataRequest{
+		Userid: userid,
 	})
 }

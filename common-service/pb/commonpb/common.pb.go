@@ -4,7 +4,7 @@
 // 	protoc        v3.19.4
 // source: common.proto
 
-package common
+package commonpb
 
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
@@ -138,8 +138,8 @@ const file_common_proto_rawDesc = "" +
 	"\x06config\x18\x03 \x01(\tR\x06config2T\n" +
 	"\rCommonService\x12C\n" +
 	"\n" +
-	"LoadConfig\x12\x19.common.LoadConfigRequest\x1a\x1a.common.LoadConfigResponseB=\n" +
-	"\x18com.astraios.grpc.commonP\x01Z\x1fgithub.com/astraios/grpc/commonb\x06proto3"
+	"LoadConfig\x12\x19.common.LoadConfigRequest\x1a\x1a.common.LoadConfigResponseBW\n" +
+	"\x18com.astraios.grpc.commonP\x01Z9github.com/GUET-BAT/Astraios-S/common-service/pb/commonpbb\x06proto3"
 
 var (
 	file_common_proto_rawDescOnce sync.Once

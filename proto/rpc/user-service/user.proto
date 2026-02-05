@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+option java_package = "com.astraios.grpc.user";
+option java_multiple_files = true;
+option go_package = "github.com/GUET-BAT/Astraios-S/user-service/pb/userpb";
+
+package user;
+
+service UserService {
+  rpc VerifyPassword (VerifyPasswordRequest) returns (VerifyPasswordResponse);
+  rpc Register(RegisterRequest) returns (RegisterResponse) ;
+  rpc GetUserData(UserDataRequest) returns (UserDataResponse);
+}
+
+message VerifyPasswordRequest {
+  string username = 1;
+  string password = 2; // 明文密码
+}
+
+message VerifyPasswordResponse {
+  int32 code = 1;       // 成功返回0，失败返回1，内部错误返回2
+  string message = 2; // 返回错误信息
+  string userId = 3;      // 用户ID
+  repeated string roles = 4; // 用户角色列表
+}
+
+message RegisterRequest{
+  string username = 1;
+  string password = 2;
+  int32 type = 3;
+}
+
+message RegisterResponse {
+  int32 code = 1;
+}
+
+message UserDataRequest{
+  string userid = 1;
+}
+
+message UserDataResponse{
+  string userId = 1;
+  string nickname = 2;
+  string avatar = 3;
+  int32 gender = 4;
+  string birthday = 5;
+  string bio = 6;
+  string backgroundImage = 7;
+  string country = 8;
+  string province = 9;
+  string city = 10;
+  string school = 11;
+  string major = 12;
+  int32 graduationYear = 13;
+  string createdAt = 14;
+  string updatedAt = 15;
+}

@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/astraio/astraios-gateway/api/internal/svc"
-	"github.com/astraio/astraios-gateway/api/internal/types"
+	"github.com/GUET-BAT/Astraios-S/gateway-service/api/internal/svc"
+	"github.com/GUET-BAT/Astraios-S/gateway-service/api/internal/types"
 )
 
 func WebProfileHandler(ctx *svc.ServiceContext) HandlerFunc {

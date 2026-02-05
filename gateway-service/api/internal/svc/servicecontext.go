@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/astraio/astraios-gateway/api/internal/config"
+	"github.com/GUET-BAT/Astraios-S/gateway-service/api/internal/config"
 )
 
 type ServiceContext struct {

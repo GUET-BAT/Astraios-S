@@ -4,7 +4,7 @@
 // - protoc             v3.19.4
 // source: common.proto
 
-package common
+package commonpb
 
 import (
 	context "context"

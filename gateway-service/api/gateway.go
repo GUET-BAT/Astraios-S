@@ -3,9 +3,9 @@ package main
 import (
 	"flag"
 
-	"github.com/astraio/astraios-gateway/api/internal/config"
-	"github.com/astraio/astraios-gateway/api/internal/handler"
-	"github.com/astraio/astraios-gateway/api/internal/svc"
+	"github.com/GUET-BAT/Astraios-S/gateway-service/api/internal/config"
+	"github.com/GUET-BAT/Astraios-S/gateway-service/api/internal/handler"
+	"github.com/GUET-BAT/Astraios-S/gateway-service/api/internal/svc"
 
 	"github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/rest"
