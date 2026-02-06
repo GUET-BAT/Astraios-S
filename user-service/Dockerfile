@@ -5,16 +5,16 @@ WORKDIR /app
 
 # Workspace and module sources
 COPY go.work ./
+COPY common-service/ common-service/
 COPY user-service/ user-service/
-COPY gateway-service/ gateway-service/
 
-WORKDIR /app/gateway-service
+WORKDIR /app/user-service
 
 # Download dependencies
 RUN go mod download
 
 # Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o gateway ./gateway.go
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o user ./user.go
 
 # Run stage
 FROM alpine:latest
@@ -25,9 +25,9 @@ RUN apk --no-cache add ca-certificates tzdata
 WORKDIR /app
 
 # Copy binary and config
-COPY --from=builder /app/gateway-service/gateway .
-COPY --from=builder /app/gateway-service/etc/gateway.yaml ./etc/
+COPY --from=builder /app/user-service/user .
+COPY --from=builder /app/user-service/etc/user.yaml ./etc/
 
-EXPOSE 8888
+EXPOSE 8080
 
-ENTRYPOINT ["./gateway"]
+ENTRYPOINT ["./user"]

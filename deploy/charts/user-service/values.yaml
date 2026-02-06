@@ -1,0 +1,56 @@
+replicaCount: 1
+
+image:
+  repository: harbor.g-oss.top/astraios/user-service
+  tag: "latest"
+  pullPolicy: IfNotPresent
+imagePullSecrets:
+  - name: harbor-credential
+
+service:
+  type: ClusterIP
+  port: 8080
+
+# Probe 配置（默认关闭，可按需开启）
+probes:
+  liveness:
+    enabled: false
+    tcpSocket:
+      port: 8080
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 2
+    failureThreshold: 3
+    successThreshold: 1
+  readiness:
+    enabled: false
+    tcpSocket:
+      port: 8080
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    timeoutSeconds: 2
+    failureThreshold: 3
+    successThreshold: 1
+
+config:
+  name: user.rpc
+  listenOn: 0.0.0.0:8080
+  # RPC 超时（毫秒）
+  timeout: 2000
+  # 过载保护阈值（0-1000）
+  cpuThreshold: 900
+  middlewares:
+    breaker: true
+  configDataId: nacos.user-service.core.config
+  commonService:
+    endpoints:
+      - common-service:8080
+    timeout: 2000
+    nonBlock: true
+    middlewares:
+      breaker: true
+
+resources: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}

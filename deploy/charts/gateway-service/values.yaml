@@ -1,0 +1,53 @@
+replicaCount: 1
+
+image:
+  repository: harbor.g-oss.top/astraios/gateway-service
+  tag: "latest"
+  pullPolicy: IfNotPresent
+imagePullSecrets:
+  - name: harbor-credential
+
+service:
+  type: ClusterIP
+  port: 8888
+
+probes:
+  liveness:
+    enabled: false
+    tcpSocket:
+      port: 8888
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 2
+    failureThreshold: 3
+    successThreshold: 1
+  readiness:
+    enabled: false
+    tcpSocket:
+      port: 8888
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    timeoutSeconds: 2
+    failureThreshold: 3
+    successThreshold: 1
+
+config:
+  name: gateway
+  host: 0.0.0.0
+  port: 8888
+  userService:
+    endpoints:
+      - user-service:8080
+    timeout: 2000
+    nonBlock: true
+    middlewares:
+      breaker: true
+  jwtAuth:
+    jwksUrl: http://auth-service:8081/.well-known/jwks.json
+    issuer: astraios
+    cacheSeconds: 300
+
+resources: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}

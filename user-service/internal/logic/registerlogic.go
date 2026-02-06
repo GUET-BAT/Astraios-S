@@ -82,10 +82,6 @@ func (l *RegisterLogic) Register(in *userpb.RegisterRequest) (*userpb.RegisterRe
 	return &userpb.RegisterResponse{Code: 0}, nil
 }
 
-func generateUserID() int64 {
-	return time.Now().UnixNano()
-}
-
 func isDuplicateKey(err error) bool {
 	var mysqlErr *mysql.MySQLError
 	if errors.As(err, &mysqlErr) {

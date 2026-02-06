@@ -1,11 +1,15 @@
+// Code scaffolded by goctl. Safe to edit.
+// goctl 1.9.2
+
 package main
 
 import (
 	"flag"
+	"fmt"
 
-	"github.com/GUET-BAT/Astraios-S/gateway-service/api/internal/config"
-	"github.com/GUET-BAT/Astraios-S/gateway-service/api/internal/handler"
-	"github.com/GUET-BAT/Astraios-S/gateway-service/api/internal/svc"
+	"github.com/GUET-BAT/Astraios-S/gateway-service/internal/config"
+	"github.com/GUET-BAT/Astraios-S/gateway-service/internal/handler"
+	"github.com/GUET-BAT/Astraios-S/gateway-service/internal/svc"
 
 	"github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/rest"
@@ -25,5 +29,6 @@ func main() {
 	ctx := svc.NewServiceContext(c)
 	handler.RegisterHandlers(server, ctx)
 
+	fmt.Printf("Starting server at %s:%d...\n", c.Host, c.Port)
 	server.Start()
 }
