@@ -11,6 +11,12 @@ import (
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
+const (
+	codeSuccess        int32 = 0
+	codeFailed         int32 = 1
+	defaultRequestTimeout    = 5 * time.Second
+)
+
 type LoadConfigLogic struct {
 	ctx    context.Context
 	svcCtx *svc.ServiceContext
@@ -28,17 +34,17 @@ func NewLoadConfigLogic(ctx context.Context, svcCtx *svc.ServiceContext) *LoadCo
 func (l *LoadConfigLogic) LoadConfig(in *commonpb.LoadConfigRequest) (*commonpb.LoadConfigResponse, error) {
 	if in == nil || strings.TrimSpace(in.NacosDataId) == "" {
 		return &commonpb.LoadConfigResponse{
-			Code:    1,
+			Code:    codeFailed,
 			Message: "nacosDataId is required",
 		}, nil
 	}
 
 	client, err := l.svcCtx.NacosClient()
 	if err != nil {
-		l.Errorf("load nacos config: %v", err)
+		l.Errorf("load config: init nacos client failed: %v", err)
 		return &commonpb.LoadConfigResponse{
-			Code:    1,
-			Message: err.Error(),
+			Code:    codeFailed,
+			Message: "nacos client initialization failed",
 		}, nil
 	}
 
@@ -47,18 +53,16 @@ func (l *LoadConfigLogic) LoadConfig(in *commonpb.LoadConfigRequest) (*commonpb.
 
 	cfg, err := client.LoadConfig(ctx, in.NacosDataId)
 	if err != nil {
-		l.Errorf("load nacos config for %s: %v", in.NacosDataId, err)
+		l.Errorf("load config: fetch %s failed: %v", in.NacosDataId, err)
 		return &commonpb.LoadConfigResponse{
-			Code:    1,
-			Message: err.Error(),
+			Code:    codeFailed,
+			Message: "failed to load config from nacos",
 		}, nil
 	}
 
 	return &commonpb.LoadConfigResponse{
-		Code:    0,
+		Code:    codeSuccess,
 		Message: "ok",
 		Config:  cfg,
 	}, nil
 }
-
-const defaultRequestTimeout = 5 * time.Second

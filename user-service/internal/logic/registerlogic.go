@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"strings"
-	"time"
 
 	"github.com/GUET-BAT/Astraios-S/user-service/internal/svc"
 	"github.com/GUET-BAT/Astraios-S/user-service/pb/userpb"
@@ -31,29 +30,38 @@ func NewRegisterLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Register
 
 func (l *RegisterLogic) Register(in *userpb.RegisterRequest) (*userpb.RegisterResponse, error) {
 	if in == nil {
-		return &userpb.RegisterResponse{Code: 1}, nil
+		return &userpb.RegisterResponse{Code: CodeInvalidParam}, nil
 	}
 	username := strings.TrimSpace(in.Username)
 	password := in.Password
 	if username == "" || password == "" {
-		return &userpb.RegisterResponse{Code: 1}, nil
+		return &userpb.RegisterResponse{Code: CodeInvalidParam}, nil
+	}
+	if err := validateUsername(username); err != nil {
+		l.Infof("register: invalid username: %v", err)
+		return &userpb.RegisterResponse{Code: CodeInvalidParam}, nil
+	}
+	if err := validatePassword(password); err != nil {
+		l.Infof("register: invalid password: %v", err)
+		return &userpb.RegisterResponse{Code: CodeInvalidParam}, nil
 	}
 
 	var count int64
-	queryCtx, cancel := context.WithTimeout(l.ctx, 5*time.Second)
+	queryCtx, cancel := context.WithTimeout(l.ctx, dbQueryTimeout)
 	defer cancel()
 	err := l.svcCtx.SqlConn.QueryRowCtx(queryCtx, &count,
 		`SELECT COUNT(1) FROM t_user WHERE username = ? AND deleted_at IS NULL`, username)
 	if err != nil {
-		l.Errorf("register query user failed: %v", err)
-		return &userpb.RegisterResponse{Code: 3}, nil
+		l.Errorf("register: query user failed: %v", err)
+		return &userpb.RegisterResponse{Code: CodeInternal}, nil
 	}
 	if count > 0 {
-		return &userpb.RegisterResponse{Code: 2}, nil
+		return &userpb.RegisterResponse{Code: CodeAlreadyExists}, nil
 	}
 
 	hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
+		l.Errorf("register: hash password failed: %v", err)
 		return nil, err
 	}
 
@@ -73,13 +81,14 @@ func (l *RegisterLogic) Register(in *userpb.RegisterRequest) (*userpb.RegisterRe
 	})
 	if err != nil {
 		if isDuplicateKey(err) {
-			return &userpb.RegisterResponse{Code: 2}, nil
+			return &userpb.RegisterResponse{Code: CodeAlreadyExists}, nil
 		}
-		l.Errorf("register insert user failed: %v", err)
-		return &userpb.RegisterResponse{Code: 3}, nil
+		l.Errorf("register: insert user failed: %v", err)
+		return &userpb.RegisterResponse{Code: CodeInternal}, nil
 	}
 
-	return &userpb.RegisterResponse{Code: 0}, nil
+	l.Infof("register: success, username=%s userId=%d", username, userID)
+	return &userpb.RegisterResponse{Code: CodeSuccess}, nil
 }
 
 func isDuplicateKey(err error) bool {

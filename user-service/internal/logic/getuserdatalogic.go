@@ -13,6 +13,8 @@ import (
 
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/stores/sqlx"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type GetUserDataLogic struct {
@@ -31,16 +33,18 @@ func NewGetUserDataLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetUs
 
 func (l *GetUserDataLogic) GetUserData(in *userpb.UserDataRequest) (*userpb.UserDataResponse, error) {
 	if in == nil {
-		return &userpb.UserDataResponse{}, nil
+		return nil, status.Error(codes.InvalidArgument, "request is required")
 	}
+	// NOTE: Field name will change to in.UserId after proto regeneration.
 	userID := strings.TrimSpace(in.Userid)
 	if userID == "" {
-		return &userpb.UserDataResponse{}, nil
+		return nil, status.Error(codes.InvalidArgument, "user_id is required")
 	}
 
 	parsedID, err := strconv.ParseInt(userID, 10, 64)
 	if err != nil {
-		return &userpb.UserDataResponse{}, nil
+		l.Infof("get user data: invalid user_id format: %s", userID)
+		return nil, status.Error(codes.InvalidArgument, "invalid user_id format")
 	}
 
 	var record struct {
@@ -61,7 +65,9 @@ func (l *GetUserDataLogic) GetUserData(in *userpb.UserDataRequest) (*userpb.User
 		UpdatedAt       sql.NullTime   `db:"updated_at"`
 	}
 
-	err = l.svcCtx.SqlConn.QueryRowCtx(l.ctx, &record, `
+	queryCtx, cancel := context.WithTimeout(l.ctx, dbQueryTimeout)
+	defer cancel()
+	err = l.svcCtx.SqlConn.QueryRowCtx(queryCtx, &record, `
 SELECT user_id, nickname, avatar, gender, birthday, bio, background_image, country, province, city,
        school, major, graduation_year, created_at, updated_at
 FROM t_user_profile
@@ -69,9 +75,11 @@ WHERE user_id = ?
 LIMIT 1`, parsedID)
 	if err != nil {
 		if errors.Is(err, sqlx.ErrNotFound) {
-			return &userpb.UserDataResponse{}, nil
+			l.Infof("get user data: not found, userId=%s", userID)
+			return nil, status.Error(codes.NotFound, "user not found")
 		}
-		return nil, err
+		l.Errorf("get user data: query failed: %v", err)
+		return nil, status.Error(codes.Internal, "internal error")
 	}
 
 	return &userpb.UserDataResponse{

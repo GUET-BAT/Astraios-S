@@ -11,10 +11,9 @@ service:
   type: ClusterIP
   port: 8080
 
-# Probe 配置（默认关闭，可按需开启）
 probes:
   liveness:
-    enabled: false
+    enabled: true
     tcpSocket:
       port: 8080
     initialDelaySeconds: 10
@@ -23,7 +22,7 @@ probes:
     failureThreshold: 3
     successThreshold: 1
   readiness:
-    enabled: false
+    enabled: true
     tcpSocket:
       port: 8080
     initialDelaySeconds: 5
@@ -50,7 +49,13 @@ config:
     middlewares:
       breaker: true
 
-resources: {}
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
 nodeSelector: {}
 tolerations: []
 affinity: {}

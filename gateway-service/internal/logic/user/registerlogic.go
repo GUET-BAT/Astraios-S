@@ -14,6 +14,8 @@ import (
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
+const rpcCallTimeout = 5 * time.Second
+
 type RegisterLogic struct {
 	logx.Logger
 	ctx    context.Context
@@ -42,10 +44,11 @@ func (l *RegisterLogic) Register(req *types.RegisterRequest) (resp *types.Regist
 	}
 
 	// Step 3: Call user-service Register with timeout.
-	ctx, cancel := context.WithTimeout(l.ctx, 3*time.Second)
+	ctx, cancel := context.WithTimeout(l.ctx, rpcCallTimeout)
 	defer cancel()
 	rpcResp, err := l.svcCtx.UserService.Register(ctx, rpcReq)
 	if err != nil {
+		l.Errorf("register: rpc call failed: %v", err)
 		return &types.RegisterResponse{Code: 3}, nil
 	}
 

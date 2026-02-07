@@ -5,7 +5,6 @@ package user
 
 import (
 	"context"
-	"time"
 
 	"github.com/GUET-BAT/Astraios-S/gateway-service/internal/middleware"
 	"github.com/GUET-BAT/Astraios-S/gateway-service/internal/svc"
@@ -43,19 +42,22 @@ func (l *GetUserDataLogic) GetUserData(req *types.UserDataRequest) (resp *types.
 		return nil, status.Error(codes.Unauthenticated, "unauthorized")
 	}
 	if subject != req.Userid {
+		l.Infof("get user data: subject mismatch, subject=%s requested=%s", subject, req.Userid)
 		return nil, status.Error(codes.PermissionDenied, "forbidden")
 	}
 
 	// Step 3: Build RPC request to user-service.
+	// NOTE: Field name will change to UserId after proto regeneration.
 	rpcReq := &userpb.UserDataRequest{
 		Userid: req.Userid,
 	}
 
 	// Step 4: Call user-service GetUserData with timeout.
-	ctx, cancel := context.WithTimeout(l.ctx, 3*time.Second)
+	ctx, cancel := context.WithTimeout(l.ctx, rpcCallTimeout)
 	defer cancel()
 	rpcResp, err := l.svcCtx.UserService.GetUserData(ctx, rpcReq)
 	if err != nil {
+		l.Errorf("get user data: rpc call failed: %v", err)
 		return nil, err
 	}
 

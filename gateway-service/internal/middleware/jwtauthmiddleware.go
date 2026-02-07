@@ -15,6 +15,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/lestrrat-go/jwx/v2/jwk"
+	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/rest/httpx"
 )
 
@@ -39,17 +40,21 @@ func NewJwtAuthMiddleware(cfg config.JwtAuthConf) *JwtAuthMiddleware {
 
 func (m *JwtAuthMiddleware) Handle(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		logger := logx.WithContext(r.Context())
+
 		// Step 1: Parse token from Authorization header.
 		tokenStr, err := bearerToken(r)
 		if err != nil {
-			writeUnauthorized(w, err)
+			logger.Infof("jwt auth: %v", err)
+			writeUnauthorized(w)
 			return
 		}
 
 		// Step 2: Load JWK set (cached with TTL).
 		jwks, err := m.getJwks(r.Context())
 		if err != nil {
-			writeUnauthorized(w, err)
+			logger.Errorf("jwt auth: failed to fetch jwks: %v", err)
+			writeUnauthorized(w)
 			return
 		}
 
@@ -57,36 +62,40 @@ func (m *JwtAuthMiddleware) Handle(next http.HandlerFunc) http.HandlerFunc {
 		claims := jwt.MapClaims{}
 		_, err = jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (any, error) {
 			if token.Method.Alg() != jwt.SigningMethodRS256.Alg() {
-				return nil, errors.New("invalid jwt signing method")
+				return nil, errors.New("invalid signing method")
 			}
 			kid, _ := token.Header["kid"].(string)
 			if kid == "" {
-				return nil, errors.New("missing kid in jwt header")
+				return nil, errors.New("missing kid")
 			}
-			keys, ok := jwks.LookupKeyID(kid)
-			if !ok || len(keys) == 0 {
+			key, ok := jwks.LookupKeyID(kid)
+			if !ok {
 				return nil, errors.New("unknown kid")
 			}
-			var key any
-			if err := keys[0].Raw(&key); err != nil {
+			var rawKey any
+			if err := key.Raw(&rawKey); err != nil {
 				return nil, err
 			}
-			return key, nil
+			return rawKey, nil
 		}, jwt.WithIssuer(m.cfg.Issuer))
 		if err != nil {
-			writeUnauthorized(w, err)
+			logger.Infof("jwt auth: token validation failed: %v", err)
+			writeUnauthorized(w)
 			return
 		}
 
 		subject, err := claims.GetSubject()
 		if err != nil || strings.TrimSpace(subject) == "" {
-			writeUnauthorized(w, errors.New("missing subject in jwt claims"))
+			logger.Infof("jwt auth: missing subject in token")
+			writeUnauthorized(w)
 			return
 		}
 
-		// Step 4: Enforce access token type when present.
-		if tokenType, ok := claims["token_type"].(string); ok && tokenType != "access" {
-			writeUnauthorized(w, errors.New("invalid token type"))
+		// Step 4: Enforce access token type (must be present and equal "access").
+		tokenType, ok := claims["token_type"].(string)
+		if !ok || tokenType != "access" {
+			logger.Infof("jwt auth: invalid or missing token_type: %v", claims["token_type"])
+			writeUnauthorized(w)
 			return
 		}
 
@@ -96,9 +105,9 @@ func (m *JwtAuthMiddleware) Handle(next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-func writeUnauthorized(w http.ResponseWriter, err error) {
-	w.WriteHeader(http.StatusUnauthorized)
-	httpx.WriteJson(w, map[string]string{"message": err.Error()})
+// writeUnauthorized returns a generic 401 response without leaking internal details.
+func writeUnauthorized(w http.ResponseWriter) {
+	httpx.WriteJson(w, http.StatusUnauthorized, map[string]string{"message": "unauthorized"})
 }
 
 func (m *JwtAuthMiddleware) getJwks(ctx context.Context) (jwk.Set, error) {

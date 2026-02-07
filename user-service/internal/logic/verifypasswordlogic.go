@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/GUET-BAT/Astraios-S/user-service/internal/svc"
 	"github.com/GUET-BAT/Astraios-S/user-service/pb/userpb"
@@ -31,12 +30,12 @@ func NewVerifyPasswordLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Ve
 
 func (l *VerifyPasswordLogic) VerifyPassword(in *userpb.VerifyPasswordRequest) (*userpb.VerifyPasswordResponse, error) {
 	if in == nil {
-		return &userpb.VerifyPasswordResponse{Code: 1}, fmt.Errorf("verify req is empty")
+		return nil, fmt.Errorf("request is required")
 	}
 	username := strings.TrimSpace(in.Username)
 	password := in.Password
 	if username == "" || password == "" {
-		return &userpb.VerifyPasswordResponse{Code: 1}, nil
+		return &userpb.VerifyPasswordResponse{Code: CodeInvalidParam, Message: "invalid credentials"}, nil
 	}
 
 	var record struct {
@@ -44,25 +43,30 @@ func (l *VerifyPasswordLogic) VerifyPassword(in *userpb.VerifyPasswordRequest) (
 		Hash   string `db:"password"`
 		Status int    `db:"status"`
 	}
-	queryCtx, cancel := context.WithTimeout(l.ctx, 5*time.Second)
+	queryCtx, cancel := context.WithTimeout(l.ctx, dbQueryTimeout)
 	defer cancel()
 	err := l.svcCtx.SqlConn.QueryRowCtx(queryCtx, &record,
 		`SELECT id, password, status FROM t_user WHERE username = ? AND deleted_at IS NULL LIMIT 1`, username)
 	if err != nil {
 		if errors.Is(err, sqlx.ErrNotFound) {
-			return &userpb.VerifyPasswordResponse{Code: 1, Message: "account no exist"}, nil
+			l.Infof("verify password: account not found, username=%s", username)
+			return &userpb.VerifyPasswordResponse{Code: CodeInvalidParam, Message: "invalid credentials"}, nil
 		}
+		l.Errorf("verify password: query failed: %v", err)
 		return nil, err
 	}
 	if record.Status != 1 {
-		return &userpb.VerifyPasswordResponse{Code: 1, Message: fmt.Sprintf("accout stat is %d", record.Status)}, nil
+		l.Infof("verify password: account disabled, username=%s status=%d", username, record.Status)
+		return &userpb.VerifyPasswordResponse{Code: CodeInvalidParam, Message: "invalid credentials"}, nil
 	}
 	if bcrypt.CompareHashAndPassword([]byte(record.Hash), []byte(password)) != nil {
-		return &userpb.VerifyPasswordResponse{Code: 1, Message: "password incorrect"}, nil
+		l.Infof("verify password: incorrect password, username=%s", username)
+		return &userpb.VerifyPasswordResponse{Code: CodeInvalidParam, Message: "invalid credentials"}, nil
 	}
 
+	l.Infof("verify password: success, username=%s userId=%d", username, record.ID)
 	return &userpb.VerifyPasswordResponse{
-		Code:   0,
+		Code:   CodeSuccess,
 		UserId: fmt.Sprintf("%d", record.ID),
 		Roles:  []string{},
 	}, nil
