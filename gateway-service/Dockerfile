@@ -11,7 +11,7 @@ COPY gateway-service/ gateway-service/
 WORKDIR /app/gateway-service
 
 # Download dependencies
-RUN go mod download
+RUN go mod tidy
 
 # Build the application
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o gateway ./gateway.go

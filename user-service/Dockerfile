@@ -11,7 +11,7 @@ COPY user-service/ user-service/
 WORKDIR /app/user-service
 
 # Download dependencies
-RUN go mod download
+RUN go mod tidy
 
 # Build the application
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o user ./user.go

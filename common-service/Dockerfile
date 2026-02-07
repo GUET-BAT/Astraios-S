@@ -3,14 +3,14 @@ FROM golang:1.25-alpine AS builder
 
 WORKDIR /app
 
-# Copy go mod files
+# Copy go mod files (go.sum may be incomplete)
 COPY ./common-service/go.mod ./common-service/go.sum ./
 
-# Download dependencies
-RUN go mod download
-
-# Copy source code
+# Copy source code (needed for go mod tidy to resolve imports)
 COPY ./common-service/ ./
+
+# Update go.sum and download dependencies
+RUN go mod tidy
 
 # Build the application
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o common ./common.go
