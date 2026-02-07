@@ -5,6 +5,7 @@ WORKDIR /app
 
 # Workspace and module sources
 COPY go.work go.work.sum ./
+COPY gateway-service/ gateway-service/
 COPY common-service/ common-service/
 COPY user-service/ user-service/
 
