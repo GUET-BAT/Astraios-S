@@ -8,10 +8,13 @@ COPY go.work go.work.sum ./
 COPY user-service/ user-service/
 COPY gateway-service/ gateway-service/
 
+# Sync workspace dependencies
+RUN go work sync
+
 WORKDIR /app/gateway-service
 
 # Download dependencies
-RUN go mod tidy
+RUN go mod download
 
 # Build the application
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o gateway ./gateway.go

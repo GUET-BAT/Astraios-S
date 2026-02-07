@@ -8,10 +8,13 @@ COPY go.work go.work.sum ./
 COPY common-service/ common-service/
 COPY user-service/ user-service/
 
+# Sync workspace dependencies
+RUN go work sync
+
 WORKDIR /app/user-service
 
 # Download dependencies
-RUN go mod tidy
+RUN go mod download
 
 # Build the application
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o user ./user.go
