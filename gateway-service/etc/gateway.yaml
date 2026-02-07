@@ -1,0 +1,14 @@
+Name: gateway
+Host: 0.0.0.0
+Port: 8888
+UserService:
+  Endpoints:
+    - user-service:8080
+  Timeout: 2000
+  NonBlock: true
+  Middlewares:
+    Breaker: true
+JwtAuth:
+  JwksUrl: http://auth-service:8081/.well-known/jwks.json
+  Issuer: astraios
+  CacheSeconds: 300

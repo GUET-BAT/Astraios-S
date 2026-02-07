@@ -5,10 +5,16 @@ import (
 	"strings"
 	"time"
 
-	"common-service/internal/svc"
-	"common-service/pb/github.com/astraios/grpc/common"
+	"github.com/GUET-BAT/Astraios-S/common-service/internal/svc"
+	"github.com/GUET-BAT/Astraios-S/common-service/pb/commonpb"
 
 	"github.com/zeromicro/go-zero/core/logx"
+)
+
+const (
+	codeSuccess        int32 = 0
+	codeFailed         int32 = 1
+	defaultRequestTimeout    = 5 * time.Second
 )
 
 type LoadConfigLogic struct {
@@ -25,20 +31,20 @@ func NewLoadConfigLogic(ctx context.Context, svcCtx *svc.ServiceContext) *LoadCo
 	}
 }
 
-func (l *LoadConfigLogic) LoadConfig(in *common.LoadConfigRequest) (*common.LoadConfigResponse, error) {
+func (l *LoadConfigLogic) LoadConfig(in *commonpb.LoadConfigRequest) (*commonpb.LoadConfigResponse, error) {
 	if in == nil || strings.TrimSpace(in.NacosDataId) == "" {
-		return &common.LoadConfigResponse{
-			Code:    1,
+		return &commonpb.LoadConfigResponse{
+			Code:    codeFailed,
 			Message: "nacosDataId is required",
 		}, nil
 	}
 
 	client, err := l.svcCtx.NacosClient()
 	if err != nil {
-		l.Errorf("load nacos config: %v", err)
-		return &common.LoadConfigResponse{
-			Code:    1,
-			Message: err.Error(),
+		l.Errorf("load config: init nacos client failed: %v", err)
+		return &commonpb.LoadConfigResponse{
+			Code:    codeFailed,
+			Message: "nacos client initialization failed",
 		}, nil
 	}
 
@@ -47,18 +53,16 @@ func (l *LoadConfigLogic) LoadConfig(in *common.LoadConfigRequest) (*common.Load
 
 	cfg, err := client.LoadConfig(ctx, in.NacosDataId)
 	if err != nil {
-		l.Errorf("load nacos config for %s: %v", in.NacosDataId, err)
-		return &common.LoadConfigResponse{
-			Code:    1,
-			Message: err.Error(),
+		l.Errorf("load config: fetch %s failed: %v", in.NacosDataId, err)
+		return &commonpb.LoadConfigResponse{
+			Code:    codeFailed,
+			Message: "failed to load config from nacos",
 		}, nil
 	}
 
-	return &common.LoadConfigResponse{
-		Code:    0,
+	return &commonpb.LoadConfigResponse{
+		Code:    codeSuccess,
 		Message: "ok",
 		Config:  cfg,
 	}, nil
 }
-
-const defaultRequestTimeout = 5 * time.Second

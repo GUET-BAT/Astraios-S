@@ -7,15 +7,15 @@ package commonservice
 import (
 	"context"
 
-	"common-service/pb/github.com/astraios/grpc/common"
+	"github.com/GUET-BAT/Astraios-S/common-service/pb/commonpb"
 
 	"github.com/zeromicro/go-zero/zrpc"
 	"google.golang.org/grpc"
 )
 
 type (
-	LoadConfigRequest  = common.LoadConfigRequest
-	LoadConfigResponse = common.LoadConfigResponse
+	LoadConfigRequest  = commonpb.LoadConfigRequest
+	LoadConfigResponse = commonpb.LoadConfigResponse
 
 	CommonService interface {
 		LoadConfig(ctx context.Context, in *LoadConfigRequest, opts ...grpc.CallOption) (*LoadConfigResponse, error)
@@ -33,6 +33,6 @@ func NewCommonService(cli zrpc.Client) CommonService {
 }
 
 func (m *defaultCommonService) LoadConfig(ctx context.Context, in *LoadConfigRequest, opts ...grpc.CallOption) (*LoadConfigResponse, error) {
-	client := common.NewCommonServiceClient(m.cli.Conn())
+	client := commonpb.NewCommonServiceClient(m.cli.Conn())
 	return client.LoadConfig(ctx, in, opts...)
 }

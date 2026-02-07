@@ -1,0 +1,9 @@
+go 1.25.5
+
+// go work在DOCKERFILE构建时，不会自动同步依赖，需要手动同步
+// 需要把依赖的代码文件复制到当前目录下，然后执行go work sync
+use (
+	./common-service
+	./gateway-service
+	./user-service
+)

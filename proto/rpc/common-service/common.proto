@@ -2,12 +2,12 @@ syntax = "proto3";
 
 option java_package = "com.astraios.grpc.common";
 option java_multiple_files = true;
-option go_package = "github.com/astraios/grpc/common";
+option go_package = "github.com/GUET-BAT/Astraios-S/common-service/pb/commonpb";
 
 package common;
 
 message LoadConfigRequest {
-  string nacosDataId = 1; // e.g. "nacos.common-service.core.config" (suffix defaults to .yaml)
+  string nacos_data_id = 1; // e.g. "nacos.common-service.core.config" (suffix defaults to .yaml)
 }
 
 message LoadConfigResponse {

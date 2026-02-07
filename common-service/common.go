@@ -4,10 +4,10 @@ import (
 	"flag"
 	"fmt"
 
-	"common-service/internal/config"
-	"common-service/internal/server"
-	"common-service/internal/svc"
-	"common-service/pb/github.com/astraios/grpc/common"
+	"github.com/GUET-BAT/Astraios-S/common-service/internal/config"
+	"github.com/GUET-BAT/Astraios-S/common-service/internal/server"
+	"github.com/GUET-BAT/Astraios-S/common-service/internal/svc"
+	"github.com/GUET-BAT/Astraios-S/common-service/pb/commonpb"
 
 	"github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/core/service"
@@ -28,7 +28,7 @@ func main() {
 	ctx := svc.NewServiceContext(c)
 
 	s := zrpc.MustNewServer(c.RpcServerConf, func(grpcServer *grpc.Server) {
-		common.RegisterCommonServiceServer(grpcServer, server.NewCommonServiceServer(ctx))
+		commonpb.RegisterCommonServiceServer(grpcServer, server.NewCommonServiceServer(ctx))
 
 		// gRPC 健康检查服务，供 K8s 的 gRPC 探针调用。
 		// 这里标记为 SERVING，即表示服务就绪。

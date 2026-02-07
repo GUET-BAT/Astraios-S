@@ -1,35 +1,42 @@
 # Build stage
-FROM golang:1.21-alpine AS builder
+FROM golang:1.25-alpine AS builder
 
-# Set working directory
 WORKDIR /app
 
-# Copy go mod files
-COPY gateway-service/go.mod gateway-service/go.sum ./
+# Workspace and module sources
+COPY go.work go.work.sum ./
+COPY common-service/ common-service/
+COPY user-service/ user-service/
+COPY gateway-service/ gateway-service/
+
+# Sync workspace dependencies
+RUN go work sync
+
+WORKDIR /app/gateway-service
 
 # Download dependencies
 RUN go mod download
 
-# Copy source code
-COPY gateway-service/ ./
-
 # Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o gateway ./api/gateway.go
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o gateway ./gateway.go
 
 # Run stage
-FROM alpine:latest
+FROM alpine:3.20
 
 # Install ca-certificates for HTTPS
 RUN apk --no-cache add ca-certificates tzdata
 
+# Create non-root user
+RUN adduser -D -g '' appuser
+
 WORKDIR /app
 
-# Copy binary from builder
-COPY --from=builder /app/gateway .
-COPY --from=builder /app/api/etc/gateway.yaml ./etc/
+# Copy binary and config
+COPY --from=builder /app/gateway-service/gateway .
+COPY --from=builder /app/gateway-service/etc/gateway.yaml ./etc/
 
-# Expose port
-EXPOSE 8080
+USER appuser
 
-# Run the application
+EXPOSE 8888
+
 ENTRYPOINT ["./gateway"]

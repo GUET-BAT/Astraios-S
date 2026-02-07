@@ -7,14 +7,14 @@ package server
 import (
 	"context"
 
-	"common-service/internal/logic"
-	"common-service/internal/svc"
-	"common-service/pb/github.com/astraios/grpc/common"
+	"github.com/GUET-BAT/Astraios-S/common-service/internal/logic"
+	"github.com/GUET-BAT/Astraios-S/common-service/internal/svc"
+	"github.com/GUET-BAT/Astraios-S/common-service/pb/commonpb"
 )
 
 type CommonServiceServer struct {
 	svcCtx *svc.ServiceContext
-	common.UnimplementedCommonServiceServer
+	commonpb.UnimplementedCommonServiceServer
 }
 
 func NewCommonServiceServer(svcCtx *svc.ServiceContext) *CommonServiceServer {
@@ -23,7 +23,7 @@ func NewCommonServiceServer(svcCtx *svc.ServiceContext) *CommonServiceServer {
 	}
 }
 
-func (s *CommonServiceServer) LoadConfig(ctx context.Context, in *common.LoadConfigRequest) (*common.LoadConfigResponse, error) {
+func (s *CommonServiceServer) LoadConfig(ctx context.Context, in *commonpb.LoadConfigRequest) (*commonpb.LoadConfigResponse, error) {
 	l := logic.NewLoadConfigLogic(ctx, s.svcCtx)
 	return l.LoadConfig(in)
 }

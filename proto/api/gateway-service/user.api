@@ -1,0 +1,56 @@
+info (
+	title:   "Gateway User API"
+	desc:    "HTTP gateway for user-service"
+	author:  "Astraios"
+	version: "v1"
+)
+
+type RegisterRequest {
+	Username string `json:"username"`
+	Password string `json:"password"`
+	Type     int32  `json:"type,optional"`
+}
+
+type RegisterResponse {
+	Code int32 `json:"code"`
+}
+
+type UserDataRequest {
+	Userid string `path:"userid"`
+}
+
+type UserDataResponse {
+	UserId          string `json:"userId"`
+	Nickname        string `json:"nickname"`
+	Avatar          string `json:"avatar"`
+	Gender          int32  `json:"gender"`
+	Birthday        string `json:"birthday"`
+	Bio             string `json:"bio"`
+	BackgroundImage string `json:"backgroundImage"`
+	Country         string `json:"country"`
+	Province        string `json:"province"`
+	City            string `json:"city"`
+	School          string `json:"school"`
+	Major           string `json:"major"`
+	GraduationYear  int32  `json:"graduationYear"`
+	CreatedAt       string `json:"createdAt"`
+	UpdatedAt       string `json:"updatedAt"`
+}
+
+@server (
+	group: user
+)
+service gateway {
+	@handler Register
+	post /api/v1/users/register (RegisterRequest) returns (RegisterResponse)
+}
+
+@server (
+	group:      user
+	middleware: JwtAuth
+)
+service gateway {
+	@handler GetUserData
+	get /api/v1/users/:userid (UserDataRequest) returns (UserDataResponse)
+}
+

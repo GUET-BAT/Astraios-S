@@ -8,9 +8,7 @@ data:
   common.yaml: |
     Name: {{ .Values.config.name }}
     ListenOn: {{ .Values.config.listenOn }}
-    Etcd:
-      Hosts:
-{{- range .Values.config.etcd.hosts }}
-        - {{ . | quote }}
-{{- end }}
-      Key: {{ .Values.config.etcd.key }}
+    Timeout: {{ .Values.config.timeout }}
+    CpuThreshold: {{ .Values.config.cpuThreshold }}
+    Middlewares:
+      Breaker: {{ .Values.config.middlewares.breaker }}

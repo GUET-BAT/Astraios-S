@@ -1,9 +1,13 @@
 replicaCount: 1
 
 image:
-  repository: common-service
+  repository: harbor.g-oss.top/astraios/common-service
   tag: "latest"
   pullPolicy: IfNotPresent
+  # Use an existing imagePullSecret for Harbor authentication.
+  # Set to [] to disable.
+imagePullSecrets:
+  - name: harbor-credential
 
 service:
   type: ClusterIP
@@ -34,10 +38,12 @@ probes:
 config:
   name: common.rpc
   listenOn: 0.0.0.0:8080
-  etcd:
-    hosts:
-      - 127.0.0.1:2379
-    key: common.rpc
+  # RPC 超时（毫秒）
+  timeout: 2000
+  # 过载保护阈值（0-1000，越小越敏感）
+  cpuThreshold: 900
+  middlewares:
+    breaker: true
 
 nacos:
   enabled: true
