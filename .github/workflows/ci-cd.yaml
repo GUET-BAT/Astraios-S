@@ -40,13 +40,37 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Display workflow inputs
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          echo "=== Workflow Inputs ==="
+          echo "Deploy only: ${{ github.event.inputs.deploy_only }}"
+          echo "Services: ${{ github.event.inputs.services }}"
+          echo "Image tag: ${{ github.event.inputs.image_tag }}"
+          echo "======================="
+
       - name: Get changed services
         id: set-matrix
         run: |
-          # Determine image tag (use input if provided, otherwise use commit SHA)
-          IMAGE_TAG="${{ github.event.inputs.image_tag }}"
-          if [ -z "$IMAGE_TAG" ]; then
+          # Determine image tag based on mode
+          # For deploy_only mode, use custom tag or SHA; otherwise always use SHA
+          if [ "${{ github.event.inputs.deploy_only }}" == "true" ]; then
+            IMAGE_TAG="${{ github.event.inputs.image_tag }}"
+            if [ -n "$IMAGE_TAG" ]; then
+              # Validate image tag format: alphanumeric, dots, hyphens, underscores only
+              if ! echo "$IMAGE_TAG" | grep -qE '^[a-zA-Z0-9._-]+$'; then
+                echo "Error: Invalid image tag format. Only alphanumeric characters, dots, hyphens, and underscores are allowed."
+                exit 1
+              fi
+              echo "Using custom image tag for deployment: $IMAGE_TAG"
+            else
+              IMAGE_TAG="${{ github.sha }}"
+              echo "Using commit SHA for deployment: $IMAGE_TAG"
+            fi
+          else
+            # Non-deploy-only mode: always use commit SHA (will build new image)
             IMAGE_TAG="${{ github.sha }}"
+            echo "Using commit SHA for build and deployment: $IMAGE_TAG"
           fi
           echo "image_tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
           
@@ -56,42 +80,66 @@ jobs:
               echo "Manual trigger with specified services: ${{ github.event.inputs.services }}"
               SERVICES="${{ github.event.inputs.services }}"
               
+              # Validate services input format
+              if ! echo "$SERVICES" | grep -qE '^[a-zA-Z0-9_,-]+$'; then
+                echo "Error: Invalid services format. Only alphanumeric characters, hyphens, underscores, and commas are allowed."
+                exit 1
+              fi
+              
               # Convert comma-separated services to JSON array
               JSON_ARRAY="["
               first=true
+              valid_services_count=0
               IFS=',' read -ra SERVICE_ARRAY <<< "$SERVICES"
+              
               for service in "${SERVICE_ARRAY[@]}"; do
                 service=$(echo "$service" | xargs)  # Trim whitespace
-                if [ -d "$service" ]; then
-                  # Detect service type
-                  if [ -f "$service/go.mod" ]; then
-                    service_type="go"
-                  elif [ -f "$service/pom.xml" ]; then
-                    service_type="java"
-                  else
-                    echo "Warning: Cannot detect build type for $service, skipping..."
-                    continue
-                  fi
-                  
-                  if [ "$first" = true ]; then
-                    first=false
-                  else
-                    JSON_ARRAY="$JSON_ARRAY,"
-                  fi
-                  JSON_ARRAY="$JSON_ARRAY{\"name\":\"$service\",\"type\":\"$service_type\"}"
-                else
-                  echo "Warning: Service directory not found: $service"
+                
+                if [ -z "$service" ]; then
+                  echo "Warning: Empty service name, skipping..."
+                  continue
                 fi
+                
+                if [ ! -d "$service" ]; then
+                  echo "Error: Service directory not found: $service"
+                  echo "Available services:"
+                  for dir in *-service; do
+                    if [ -d "$dir" ]; then
+                      echo "  - $dir"
+                    fi
+                  done
+                  exit 1
+                fi
+                
+                # Detect service type
+                if [ -f "$service/go.mod" ]; then
+                  service_type="go"
+                elif [ -f "$service/pom.xml" ]; then
+                  service_type="java"
+                else
+                  echo "Error: Cannot detect build type for $service (no go.mod or pom.xml found)"
+                  exit 1
+                fi
+                
+                if [ "$first" = true ]; then
+                  first=false
+                else
+                  JSON_ARRAY="$JSON_ARRAY,"
+                fi
+                JSON_ARRAY="$JSON_ARRAY{\"name\":\"$service\",\"type\":\"$service_type\"}"
+                valid_services_count=$((valid_services_count + 1))
+                echo "✓ Validated service: $service (type: $service_type)"
               done
               JSON_ARRAY="$JSON_ARRAY]"
               
-              echo "Using specified services: $JSON_ARRAY"
-              echo "matrix=$JSON_ARRAY" >> $GITHUB_OUTPUT
-              if [ "$first" = false ]; then
-                echo "has_changes=true" >> $GITHUB_OUTPUT
-              else
-                echo "has_changes=false" >> $GITHUB_OUTPUT
+              if [ "$valid_services_count" -eq 0 ]; then
+                echo "Error: No valid services specified"
+                exit 1
               fi
+              
+              echo "Using $valid_services_count specified service(s): $JSON_ARRAY"
+              echo "matrix=$JSON_ARRAY" >> $GITHUB_OUTPUT
+              echo "has_changes=true" >> $GITHUB_OUTPUT
               exit 0
             elif [ "${{ github.event.inputs.deploy_only }}" == "true" ]; then
               # Deploy-only mode without specified services - list available services
@@ -110,51 +158,68 @@ jobs:
           fi
           
           # Otherwise, detect changed services from git diff
+          echo "Auto-detecting changed services from git diff..."
+          
           # Ensure base branch is available for diff (PR uses base_ref, manual defaults to main)
           BASE_REF="${{ github.base_ref }}"
           if [ -z "$BASE_REF" ]; then
             BASE_REF="main"
           fi
+          echo "Comparing against base branch: $BASE_REF"
           git fetch origin "$BASE_REF" --depth=1
 
           # Find directories ending with 'service' that have changes
-          CHANGED_SERVICES=$(git diff --name-only origin/$BASE_REF...HEAD | grep -E '.*service/' | awk -F/ '{print $1}' | sort | uniq | grep 'service$')
+          CHANGED_SERVICES=$(git diff --name-only origin/$BASE_REF...HEAD | grep -E '.*service/' | awk -F/ '{print $1}' | sort | uniq | grep 'service$' || true)
           
-          # Convert to JSON array with service type detection
-          JSON_ARRAY="[]"
-          first=true
-          for service in $CHANGED_SERVICES; do
-            if [ -d "$service" ]; then
-              # Detect service type
-              if [ -f "$service/go.mod" ]; then
-                service_type="go"
-              elif [ -f "$service/pom.xml" ]; then
-                service_type="java"
-              else
-                echo "Warning: Cannot detect build type for $service, skipping..."
-                continue
-              fi
-              
-              if [ "$first" = true ]; then
-                JSON_ARRAY="["
-                first=false
-              else
-                JSON_ARRAY="$JSON_ARRAY,"
-              fi
-              JSON_ARRAY="$JSON_ARRAY{\"name\":\"$service\",\"type\":\"$service_type\"}"
-            fi
-          done
-          
-          if [ "$first" = false ]; then
-            JSON_ARRAY="$JSON_ARRAY]"
+          if [ -z "$CHANGED_SERVICES" ]; then
+            echo "No service changes detected"
+            echo "matrix=[]" >> $GITHUB_OUTPUT
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+            exit 0
           fi
           
-          echo "Detected changed services: $JSON_ARRAY"
+          echo "Changed services detected:"
+          echo "$CHANGED_SERVICES"
           
-          echo "matrix=$JSON_ARRAY" >> $GITHUB_OUTPUT
-          if [ "$JSON_ARRAY" == "[]" ]; then
+          # Convert to JSON array with service type detection
+          JSON_ARRAY="["
+          first=true
+          valid_services_count=0
+          
+          for service in $CHANGED_SERVICES; do
+            if [ ! -d "$service" ]; then
+              echo "Warning: Service directory not found: $service, skipping..."
+              continue
+            fi
+            
+            # Detect service type
+            if [ -f "$service/go.mod" ]; then
+              service_type="go"
+            elif [ -f "$service/pom.xml" ]; then
+              service_type="java"
+            else
+              echo "Warning: Cannot detect build type for $service (no go.mod or pom.xml found), skipping..."
+              continue
+            fi
+            
+            if [ "$first" = true ]; then
+              first=false
+            else
+              JSON_ARRAY="$JSON_ARRAY,"
+            fi
+            JSON_ARRAY="$JSON_ARRAY{\"name\":\"$service\",\"type\":\"$service_type\"}"
+            valid_services_count=$((valid_services_count + 1))
+            echo "✓ Added service: $service (type: $service_type)"
+          done
+          JSON_ARRAY="$JSON_ARRAY]"
+          
+          if [ "$valid_services_count" -eq 0 ]; then
+            echo "No valid services found after filtering"
+            echo "matrix=[]" >> $GITHUB_OUTPUT
             echo "has_changes=false" >> $GITHUB_OUTPUT
           else
+            echo "Total $valid_services_count valid service(s) with changes: $JSON_ARRAY"
+            echo "matrix=$JSON_ARRAY" >> $GITHUB_OUTPUT
             echo "has_changes=true" >> $GITHUB_OUTPUT
           fi
 
@@ -270,7 +335,7 @@ jobs:
           context: .
           file: ${{ matrix.service.name }}/Dockerfile
           push: true
-          tags: ${{ secrets.HARBOR_URL }}/${{ secrets.HARBOR_PROJECT }}/${{ matrix.service.name }}:${{ github.sha }}
+          tags: ${{ secrets.HARBOR_URL }}/${{ secrets.HARBOR_PROJECT }}/${{ matrix.service.name }}:${{ needs.detect-changes.outputs.image_tag }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -286,7 +351,7 @@ jobs:
           helm registry login $HARBOR_URL -u "${{ secrets.HARBOR_CHART_USERNAME }}" -p "${{ secrets.HARBOR_CHART_PASSWORD }}"
 
           VERSION="0.0.${{ github.run_number }}"
-          APP_VERSION="${{ github.sha }}"
+          APP_VERSION="${{ needs.detect-changes.outputs.image_tag }}"
           PACKAGE_PATH=$(helm package "$CHART_DIR" --version "$VERSION" --app-version "$APP_VERSION" | awk -F': ' '{print $2}')
           if [ -z "$PACKAGE_PATH" ]; then
             echo "Failed to package chart for $SERVICE_NAME"
@@ -297,9 +362,7 @@ jobs:
 
   deploy:
     needs: [detect-changes]
-    if: |
-      github.event_name == 'workflow_dispatch' && 
-      (needs.detect-changes.outputs.has_changes == 'true' || github.event.inputs.deploy_only == 'true')
+    if: github.event_name == 'workflow_dispatch' && (needs.detect-changes.outputs.has_changes == 'true' || github.event.inputs.deploy_only == 'true')
     runs-on: ubuntu-latest
     strategy:
       matrix:
