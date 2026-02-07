@@ -403,43 +403,6 @@ jobs:
             exit 1
           fi
           
-      - name: Verify Kubernetes access
-        run: |
-          echo "Verifying Kubernetes cluster access..."
-          
-          # Get current context
-          CURRENT_CONTEXT=$(kubectl config current-context)
-          echo "Current context: $CURRENT_CONTEXT"
-          
-          # Get current namespace
-          CURRENT_NAMESPACE=$(kubectl config view --minify -o jsonpath='{..namespace}')
-          if [ -z "$CURRENT_NAMESPACE" ]; then
-            CURRENT_NAMESPACE="default"
-          fi
-          echo "Current namespace: $CURRENT_NAMESPACE"
-          
-          # Test basic access
-          if ! kubectl get namespaces > /dev/null 2>&1; then
-            echo "⚠️  WARNING: Cannot list namespaces. This is expected if using limited ServiceAccount."
-          else
-            echo "✓ Can list namespaces (admin-level access detected)"
-            echo ""
-            echo "⚠️  SECURITY WARNING:"
-            echo "Your kubeconfig appears to have cluster-admin privileges."
-            echo "Consider using a limited ServiceAccount for CI/CD deployments."
-            echo "See: docs/k8s-deployment-security.md"
-            echo ""
-          fi
-          
-          # Verify we can access the deployment namespace
-          DEPLOY_NAMESPACE="${CURRENT_NAMESPACE}"
-          if kubectl get namespace "$DEPLOY_NAMESPACE" > /dev/null 2>&1; then
-            echo "✓ Target namespace exists: $DEPLOY_NAMESPACE"
-          else
-            echo "❌ ERROR: Cannot access namespace: $DEPLOY_NAMESPACE"
-            exit 1
-          fi
-          
       - name: Deploy to K8s
         run: |
           # Use image tag from detect-changes output (which handles input or default to SHA)
