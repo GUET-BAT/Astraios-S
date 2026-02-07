@@ -380,21 +380,84 @@ jobs:
       - name: Set up Kubectl
         uses: azure/setup-kubectl@v3
         
-      - name: Deploy to K8s
+      - name: Setup kubeconfig
         env:
           KUBECONFIG_CONTENT: ${{ secrets.KUBE_CONFIG }}
         run: |
           mkdir -p ~/.kube
-          printf '%s' "$KUBECONFIG_CONTENT" > ~/.kube/config
+          # Check if KUBECONFIG_CONTENT is base64 encoded
+          if echo "$KUBECONFIG_CONTENT" | head -c 11 | grep -q "apiVersion:"; then
+            # Content is already decoded YAML
+            printf '%s' "$KUBECONFIG_CONTENT" > ~/.kube/config
+          else
+            # Content is base64 encoded, decode it
+            echo "$KUBECONFIG_CONTENT" | base64 -d > ~/.kube/config
+          fi
           chmod 600 ~/.kube/config
           
+          # Verify kubeconfig format
+          if ! grep -q "apiVersion:" ~/.kube/config; then
+            echo "Error: Invalid kubeconfig format"
+            echo "First few lines of config:"
+            head -n 5 ~/.kube/config
+            exit 1
+          fi
+          
+      - name: Verify Kubernetes access
+        run: |
+          echo "Verifying Kubernetes cluster access..."
+          
+          # Get current context
+          CURRENT_CONTEXT=$(kubectl config current-context)
+          echo "Current context: $CURRENT_CONTEXT"
+          
+          # Get current namespace
+          CURRENT_NAMESPACE=$(kubectl config view --minify -o jsonpath='{..namespace}')
+          if [ -z "$CURRENT_NAMESPACE" ]; then
+            CURRENT_NAMESPACE="default"
+          fi
+          echo "Current namespace: $CURRENT_NAMESPACE"
+          
+          # Test basic access
+          if ! kubectl get namespaces > /dev/null 2>&1; then
+            echo "⚠️  WARNING: Cannot list namespaces. This is expected if using limited ServiceAccount."
+          else
+            echo "✓ Can list namespaces (admin-level access detected)"
+            echo ""
+            echo "⚠️  SECURITY WARNING:"
+            echo "Your kubeconfig appears to have cluster-admin privileges."
+            echo "Consider using a limited ServiceAccount for CI/CD deployments."
+            echo "See: docs/k8s-deployment-security.md"
+            echo ""
+          fi
+          
+          # Verify we can access the deployment namespace
+          DEPLOY_NAMESPACE="${CURRENT_NAMESPACE}"
+          if kubectl get namespace "$DEPLOY_NAMESPACE" > /dev/null 2>&1; then
+            echo "✓ Target namespace exists: $DEPLOY_NAMESPACE"
+          else
+            echo "❌ ERROR: Cannot access namespace: $DEPLOY_NAMESPACE"
+            exit 1
+          fi
+          
+      - name: Deploy to K8s
+        run: |
           # Use image tag from detect-changes output (which handles input or default to SHA)
           IMAGE_TAG="${{ needs.detect-changes.outputs.image_tag }}"
           SERVICE_NAME=${{ matrix.service.name }}
           
           echo "Deploying $SERVICE_NAME with image tag: $IMAGE_TAG"
           
+          # Deploy with Helm
           helm upgrade --install $SERVICE_NAME ./deploy/charts/$SERVICE_NAME \
             --set image.repository=$HARBOR_URL/$HARBOR_PROJECT/$SERVICE_NAME \
             --set image.tag=$IMAGE_TAG \
-            --set fullnameOverride=$SERVICE_NAME
+            --set fullnameOverride=$SERVICE_NAME \
+            --timeout 5m \
+            --wait
+          
+          echo "✅ Deployment completed successfully"
+          
+          # Show deployment status
+          kubectl get deployment $SERVICE_NAME -o wide || true
+          kubectl get pods -l app=$SERVICE_NAME --show-labels || true
