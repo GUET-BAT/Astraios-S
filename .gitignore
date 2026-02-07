@@ -1,6 +1,7 @@
 /.idea/
 target/
 build/
+docs/
 
 .trae/
 .cursor/
