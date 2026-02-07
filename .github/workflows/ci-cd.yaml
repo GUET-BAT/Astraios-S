@@ -5,6 +5,23 @@ on:
     branches: [ "main" ]
     types: [opened, synchronize, reopened, labeled]
   workflow_dispatch:
+    inputs:
+      deploy_only:
+        description: 'Deploy only (skip CI)'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+      services:
+        description: 'Services to deploy (comma-separated, e.g., user-service,gateway-service). Leave empty to deploy all changed services.'
+        required: false
+        type: string
+      image_tag:
+        description: 'Image tag to deploy (default: current commit SHA)'
+        required: false
+        type: string
 
 env:
   HARBOR_URL: ${{ secrets.HARBOR_URL }}
@@ -17,6 +34,7 @@ jobs:
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
       has_changes: ${{ steps.set-matrix.outputs.has_changes }}
+      image_tag: ${{ steps.set-matrix.outputs.image_tag }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -25,6 +43,73 @@ jobs:
       - name: Get changed services
         id: set-matrix
         run: |
+          # Determine image tag (use input if provided, otherwise use commit SHA)
+          IMAGE_TAG="${{ github.event.inputs.image_tag }}"
+          if [ -z "$IMAGE_TAG" ]; then
+            IMAGE_TAG="${{ github.sha }}"
+          fi
+          echo "image_tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
+          
+          # If manual trigger, handle service selection
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            if [ -n "${{ github.event.inputs.services }}" ]; then
+              echo "Manual trigger with specified services: ${{ github.event.inputs.services }}"
+              SERVICES="${{ github.event.inputs.services }}"
+              
+              # Convert comma-separated services to JSON array
+              JSON_ARRAY="["
+              first=true
+              IFS=',' read -ra SERVICE_ARRAY <<< "$SERVICES"
+              for service in "${SERVICE_ARRAY[@]}"; do
+                service=$(echo "$service" | xargs)  # Trim whitespace
+                if [ -d "$service" ]; then
+                  # Detect service type
+                  if [ -f "$service/go.mod" ]; then
+                    service_type="go"
+                  elif [ -f "$service/pom.xml" ]; then
+                    service_type="java"
+                  else
+                    echo "Warning: Cannot detect build type for $service, skipping..."
+                    continue
+                  fi
+                  
+                  if [ "$first" = true ]; then
+                    first=false
+                  else
+                    JSON_ARRAY="$JSON_ARRAY,"
+                  fi
+                  JSON_ARRAY="$JSON_ARRAY{\"name\":\"$service\",\"type\":\"$service_type\"}"
+                else
+                  echo "Warning: Service directory not found: $service"
+                fi
+              done
+              JSON_ARRAY="$JSON_ARRAY]"
+              
+              echo "Using specified services: $JSON_ARRAY"
+              echo "matrix=$JSON_ARRAY" >> $GITHUB_OUTPUT
+              if [ "$first" = false ]; then
+                echo "has_changes=true" >> $GITHUB_OUTPUT
+              else
+                echo "has_changes=false" >> $GITHUB_OUTPUT
+              fi
+              exit 0
+            elif [ "${{ github.event.inputs.deploy_only }}" == "true" ]; then
+              # Deploy-only mode without specified services - list available services
+              echo "Deploy-only mode activated but no services specified."
+              echo "Available services:"
+              for dir in *-service; do
+                if [ -d "$dir" ]; then
+                  echo "  - $dir"
+                fi
+              done
+              echo "Please specify services in the workflow input."
+              echo "matrix=[]" >> $GITHUB_OUTPUT
+              echo "has_changes=false" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+          fi
+          
+          # Otherwise, detect changed services from git diff
           # Ensure base branch is available for diff (PR uses base_ref, manual defaults to main)
           BASE_REF="${{ github.base_ref }}"
           if [ -z "$BASE_REF" ]; then
@@ -75,7 +160,7 @@ jobs:
 
   test:
     needs: detect-changes
-    if: needs.detect-changes.outputs.has_changes == 'true'
+    if: needs.detect-changes.outputs.has_changes == 'true' && (github.event_name != 'workflow_dispatch' || github.event.inputs.deploy_only != 'true')
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -119,7 +204,9 @@ jobs:
 
   build-and-push:
     needs: [detect-changes, test]
-    if: needs.detect-changes.outputs.has_changes == 'true'
+    if: |
+      needs.detect-changes.outputs.has_changes == 'true' && 
+      (github.event_name != 'workflow_dispatch' || github.event.inputs.deploy_only != 'true')
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -209,8 +296,10 @@ jobs:
           helm push "$PACKAGE_PATH" "oci://$HARBOR_URL/$HARBOR_CHART_PROJECT"
 
   deploy:
-    needs: [detect-changes, build-and-push]
-    if: github.event_name == 'workflow_dispatch' && needs.detect-changes.outputs.has_changes == 'true'
+    needs: [detect-changes]
+    if: |
+      github.event_name == 'workflow_dispatch' && 
+      (needs.detect-changes.outputs.has_changes == 'true' || github.event.inputs.deploy_only == 'true')
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -236,8 +325,11 @@ jobs:
           printf '%s' "$KUBECONFIG_CONTENT" > ~/.kube/config
           chmod 600 ~/.kube/config
           
-          IMAGE_TAG=${{ github.sha }}
+          # Use image tag from detect-changes output (which handles input or default to SHA)
+          IMAGE_TAG="${{ needs.detect-changes.outputs.image_tag }}"
           SERVICE_NAME=${{ matrix.service.name }}
+          
+          echo "Deploying $SERVICE_NAME with image tag: $IMAGE_TAG"
           
           helm upgrade --install $SERVICE_NAME ./deploy/charts/$SERVICE_NAME \
             --set image.repository=$HARBOR_URL/$HARBOR_PROJECT/$SERVICE_NAME \
