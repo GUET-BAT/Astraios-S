@@ -1,0 +1,63 @@
+# Custom values for ingress-nginx.
+# 注意：顶层配置与controller配置分离，层级正确
+ingress-nginx:
+    
+  controller:
+    # 核心配置：设置默认 SSL 证书
+    extraArgs:
+      default-ssl-certificate: "ingress-nginx/global-tls"
+
+    ingressClassResource:
+      name: nginx
+      enabled: true
+      default: false
+      controllerValue: "k8s.io/ingress-nginx"
+
+    # Nginx 配置
+    config:
+      ssl-redirect: "true"
+      force-ssl-redirect: "true"
+      use-forwarded-headers: "true"
+      proxy-body-size: "20m"
+
+    # 服务配置
+    service:
+      enabled: true
+      type: NodePort
+      nodePorts:
+        http: 31907
+        https: 32035
+      annotations: {}
+
+    # 镜像配置：强制使用本地镜像，禁止任何外网拉取
+    image:
+      registry: registry.k8s.io
+      image: ingress-nginx/controller
+      tag: v1.9.6
+      digest: ""
+      pullPolicy: Never  # 关键：从不拉取，仅用本地镜像
+
+    # 资源限制
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512Mi
+      requests:
+        cpu: 100m
+        memory: 128Mi
+
+    admissionWebhooks:
+      enabled: true
+      patch:
+        enabled: true
+        image:
+          registry: registry.k8s.io
+          image: ingress-nginx/kube-webhook-certgen
+          tag: v20231226-1a7112e06
+          digest: ""
+          pullPolicy: Never
+    
+
+  # 默认不安装默认后端
+  defaultBackend:
+    enabled: false

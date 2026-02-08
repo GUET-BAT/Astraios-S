@@ -47,6 +47,25 @@ config:
     issuer: astraios
     cacheSeconds: 300
 
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    # Strip /api prefix before forwarding to gateway-service
+    # e.g., /api/v1/users -> /v1/users
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+  hosts:
+    - host: astraios.g-oss.top
+      paths:
+        - path: /api(/|$)(.*)
+          pathType: ImplementationSpecific
+  # TLS is handled globally by ingress-nginx-custom's default-ssl-certificate.
+  # Uncomment below only if you need a domain-specific certificate.
+  # tls:
+  #   - hosts:
+  #       - astraios.g-oss.top
+  #     secretName: astraios-tls
+
 resources:
   requests:
     cpu: 100m
