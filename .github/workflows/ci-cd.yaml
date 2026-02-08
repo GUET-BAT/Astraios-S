@@ -258,7 +258,7 @@ jobs:
         if: matrix.service.type == 'go'
         uses: actions/setup-go@v5
         with:
-          go-version: '1.21'
+          go-version: '1.25'
           cache-dependency-path: ${{ matrix.service.name }}/go.sum
 
       # Test Java service
@@ -306,7 +306,7 @@ jobs:
         if: matrix.service.type == 'go'
         uses: actions/setup-go@v5
         with:
-          go-version: '1.21'
+          go-version: '1.25'
           cache-dependency-path: ${{ matrix.service.name }}/go.sum
           
       # Build Java service
