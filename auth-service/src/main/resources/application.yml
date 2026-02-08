@@ -1,5 +1,4 @@
 server:
-  port: 8081
   tomcat:
     uri-encoding: UTF-8
 
@@ -31,7 +30,7 @@ spring:
       database: 0
 grpc:
   server:
-    port: 9091
+    port: 9090
   client:
     user-service:
       address: static://127.0.0.1:8080
