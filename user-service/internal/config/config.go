@@ -11,5 +11,5 @@ type Config struct {
 	CommonService zrpc.RpcClientConf
 	ConfigDataId  string `json:",optional"`
 	Sql           sqlx.SqlConf    `json:"sql"`
-	Redis         redis.RedisConf `json:"redis"`
+	CacheRedis    redis.RedisConf `json:"cacheRedis"`
 }
