@@ -22,6 +22,6 @@ RUN mvn clean package -pl auth-service -am -DskipTests
 # Run stage
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
-COPY --from=build /app/auth-service/target/*.jar app.jar
-EXPOSE 8080
+COPY --from=build /app/auth-service/target/auth-*.jar app.jar
+EXPOSE 9091
 ENTRYPOINT ["java", "-jar", "app.jar"]
