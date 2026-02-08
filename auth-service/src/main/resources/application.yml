@@ -6,11 +6,6 @@ server:
 spring:
   application:
     name: auth-service
-#  autoconfigure:
-#    exclude:
-#      # 避免 grpc-server-spring-boot-starter 在检测到 AuthenticationManager 后自动装配 gRPC 安全拦截器
-#      # 该自动配置会强制要求提供 GrpcAuthenticationReader（当前项目未使用 gRPC 层面的 Spring Security）
-#      - net.devh.boot.grpc.server.autoconfigure.GrpcServerSecurityAutoConfiguration
   cloud:
     nacos:
       server-addr: localhost:8848
@@ -36,8 +31,8 @@ spring:
       database: 0
 grpc:
   server:
-    port: 9091  # gRPC服务端口
+    port: 9091
   client:
     user-service:
-      address: static://127.0.0.1:9090
+      address: static://127.0.0.1:8080
       negotiation-type: plaintext
