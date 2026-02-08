@@ -51,14 +51,29 @@ ingress:
   enabled: true
   className: nginx
   annotations:
-    # Strip /api prefix before forwarding to gateway-service
-    # e.g., /api/v1/users -> /v1/users
-    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    # Forward /api/* requests to gateway-service without rewriting
+    # gateway-service handles /api prefix internally
   hosts:
     - host: astraios.g-oss.top
       paths:
-        - path: /api(/|$)(.*)
-          pathType: ImplementationSpecific
+        - path: /api
+          pathType: Prefix
+  
+  # Canary (灰度发布) 配置
+  # 用于将部分流量路由到新版本（如 v2）
+  canary:
+    enabled: false
+    # 灰度方式：weight (按权重) 或 header (按请求头)
+    type: weight  # weight | header
+    # 权重灰度：0-100，表示灰度流量百分比
+    weight: 10    # 10% 流量到 canary 版本
+    # Header 灰度：匹配特定 header 的请求才走灰度
+    # header:
+    #   name: X-Canary
+    #   value: "true"
+    # 灰度服务名称（通常是 gateway-service-canary）
+    serviceName: gateway-service-canary
+    servicePort: 8888
   # TLS is handled globally by ingress-nginx-custom's default-ssl-certificate.
   # Uncomment below only if you need a domain-specific certificate.
   # tls:
