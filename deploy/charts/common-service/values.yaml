@@ -3,7 +3,7 @@ replicaCount: 1
 image:
   repository: harbor.g-oss.top/astraios/common-service
   tag: "latest"
-  pullPolicy: IfNotPresent
+  pullPolicy: Always
   # Use an existing imagePullSecret for Harbor authentication.
   # Set to [] to disable.
 imagePullSecrets:

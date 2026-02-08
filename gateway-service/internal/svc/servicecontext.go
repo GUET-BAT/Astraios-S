@@ -6,6 +6,7 @@ package svc
 import (
 	"github.com/GUET-BAT/Astraios-S/gateway-service/internal/config"
 	"github.com/GUET-BAT/Astraios-S/gateway-service/internal/middleware"
+	"github.com/GUET-BAT/Astraios-S/gateway-service/pb/authpb"
 	"github.com/GUET-BAT/Astraios-S/user-service/pb/userpb"
 
 	"github.com/zeromicro/go-zero/rest"
@@ -16,13 +17,19 @@ type ServiceContext struct {
 	Config      config.Config
 	JwtAuth     rest.Middleware
 	UserService userpb.UserServiceClient
+	AuthService authpb.AuthServiceClient
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
 	userClient := zrpc.MustNewClient(c.UserService)
+	authClient := zrpc.MustNewClient(c.AuthService)
+
+	authSvcClient := authpb.NewAuthServiceClient(authClient.Conn())
+
 	return &ServiceContext{
 		Config:      c,
-		JwtAuth:     middleware.NewJwtAuthMiddleware(c.JwtAuth).Handle,
+		JwtAuth:     middleware.NewJwtAuthMiddleware(c.JwtAuth, authSvcClient).Handle,
 		UserService: userpb.NewUserServiceClient(userClient.Conn()),
+		AuthService: authSvcClient,
 	}
 }

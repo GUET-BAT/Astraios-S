@@ -59,7 +59,7 @@ jobs:
             if [ -z "$IMAGE_TAG" ]; then
               echo "Error: image_tag is required when deploy_only is enabled."
               echo "Since deploy_only skips the build step, you must specify an existing image tag from Harbor."
-              echo "Example: use the commit SHA from a previous successful build-and-push run."
+              echo "Examples: 'latest' for the most recent build, or a commit SHA from a previous successful build."
               exit 1
             fi
             # Validate image tag format: alphanumeric, dots, hyphens, underscores only
@@ -345,7 +345,9 @@ jobs:
           context: .
           file: ${{ matrix.service.name }}/Dockerfile
           push: true
-          tags: ${{ secrets.HARBOR_URL }}/${{ secrets.HARBOR_PROJECT }}/${{ matrix.service.name }}:${{ needs.detect-changes.outputs.image_tag }}
+          tags: |
+            ${{ secrets.HARBOR_URL }}/${{ secrets.HARBOR_PROJECT }}/${{ matrix.service.name }}:${{ needs.detect-changes.outputs.image_tag }}
+            ${{ secrets.HARBOR_URL }}/${{ secrets.HARBOR_PROJECT }}/${{ matrix.service.name }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

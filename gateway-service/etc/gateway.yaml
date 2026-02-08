@@ -8,7 +8,13 @@ UserService:
   NonBlock: true
   Middlewares:
     Breaker: true
+AuthService:
+  Endpoints:
+    - auth-service:9091
+  Timeout: 2000
+  NonBlock: true
+  Middlewares:
+    Breaker: true
 JwtAuth:
-  JwksUrl: http://auth-service:8081/.well-known/jwks.json
   Issuer: astraios
   CacheSeconds: 300
