@@ -19,7 +19,7 @@ on:
         required: false
         type: string
       image_tag:
-        description: 'Image tag to deploy (default: current commit SHA)'
+        description: 'Image tag to deploy (required for deploy_only mode, default: current commit SHA for normal mode)'
         required: false
         type: string
 
@@ -53,24 +53,34 @@ jobs:
         id: set-matrix
         run: |
           # Determine image tag based on mode
-          # For deploy_only mode, use custom tag or SHA; otherwise always use SHA
           if [ "${{ github.event.inputs.deploy_only }}" == "true" ]; then
+            # Deploy-only mode: image must already exist in Harbor, require explicit tag
+            IMAGE_TAG="${{ github.event.inputs.image_tag }}"
+            if [ -z "$IMAGE_TAG" ]; then
+              echo "Error: image_tag is required when deploy_only is enabled."
+              echo "Since deploy_only skips the build step, you must specify an existing image tag from Harbor."
+              echo "Example: use the commit SHA from a previous successful build-and-push run."
+              exit 1
+            fi
+            # Validate image tag format: alphanumeric, dots, hyphens, underscores only
+            if ! echo "$IMAGE_TAG" | grep -qE '^[a-zA-Z0-9._-]+$'; then
+              echo "Error: Invalid image tag format. Only alphanumeric characters, dots, hyphens, and underscores are allowed."
+              exit 1
+            fi
+            echo "Using specified image tag for deployment: $IMAGE_TAG"
+          else
+            # Normal mode: will build new image, use custom tag or commit SHA
             IMAGE_TAG="${{ github.event.inputs.image_tag }}"
             if [ -n "$IMAGE_TAG" ]; then
-              # Validate image tag format: alphanumeric, dots, hyphens, underscores only
               if ! echo "$IMAGE_TAG" | grep -qE '^[a-zA-Z0-9._-]+$'; then
                 echo "Error: Invalid image tag format. Only alphanumeric characters, dots, hyphens, and underscores are allowed."
                 exit 1
               fi
-              echo "Using custom image tag for deployment: $IMAGE_TAG"
+              echo "Using custom image tag for build and deployment: $IMAGE_TAG"
             else
               IMAGE_TAG="${{ github.sha }}"
-              echo "Using commit SHA for deployment: $IMAGE_TAG"
+              echo "Using commit SHA for build and deployment: $IMAGE_TAG"
             fi
-          else
-            # Non-deploy-only mode: always use commit SHA (will build new image)
-            IMAGE_TAG="${{ github.sha }}"
-            echo "Using commit SHA for build and deployment: $IMAGE_TAG"
           fi
           echo "image_tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
           
@@ -361,8 +371,12 @@ jobs:
           helm push "$PACKAGE_PATH" "oci://$HARBOR_URL/$HARBOR_CHART_PROJECT"
 
   deploy:
-    needs: [detect-changes]
-    if: github.event_name == 'workflow_dispatch' && (needs.detect-changes.outputs.has_changes == 'true' || github.event.inputs.deploy_only == 'true')
+    needs: [detect-changes, build-and-push]
+    if: |
+      always() &&
+      github.event_name == 'workflow_dispatch' &&
+      (needs.detect-changes.outputs.has_changes == 'true' || github.event.inputs.deploy_only == 'true') &&
+      (needs.build-and-push.result == 'success' || needs.build-and-push.result == 'skipped')
     # Self-hosted runner is required to access the internal K8s API server (10.x.x.x)
     # To use GitHub-hosted runner instead, change to 'ubuntu-latest' and ensure
     # the K8s API server is publicly accessible or reachable via VPN/tunnel
@@ -408,14 +422,15 @@ jobs:
           
       - name: Deploy to K8s
         run: |
-          # Use image tag from detect-changes output (which handles input or default to SHA)
           IMAGE_TAG="${{ needs.detect-changes.outputs.image_tag }}"
           SERVICE_NAME=${{ matrix.service.name }}
+          NAMESPACE="astraios"
           
-          echo "Deploying $SERVICE_NAME with image tag: $IMAGE_TAG"
+          echo "Deploying $SERVICE_NAME with image tag: $IMAGE_TAG to namespace: $NAMESPACE"
           
           # Deploy with Helm
           helm upgrade --install $SERVICE_NAME ./deploy/charts/$SERVICE_NAME \
+            --namespace $NAMESPACE \
             --set image.repository=$HARBOR_URL/$HARBOR_PROJECT/$SERVICE_NAME \
             --set image.tag=$IMAGE_TAG \
             --set fullnameOverride=$SERVICE_NAME \
@@ -423,7 +438,15 @@ jobs:
             --wait
           
           echo "✅ Deployment completed successfully"
-          
-          # Show deployment status
-          kubectl get deployment $SERVICE_NAME -o wide || true
-          kubectl get pods -l app=$SERVICE_NAME --show-labels || true
+
+      - name: Show deployment status
+        if: always()
+        run: |
+          SERVICE_NAME=${{ matrix.service.name }}
+          NAMESPACE="astraios"
+          echo "=== Deployment Status ==="
+          kubectl get deployment $SERVICE_NAME -n $NAMESPACE -o wide || true
+          echo "=== Pod Status ==="
+          kubectl get pods -l app=$SERVICE_NAME -n $NAMESPACE --show-labels || true
+          echo "=== Pod Events (last 5 min) ==="
+          kubectl get events -n $NAMESPACE --sort-by='.lastTimestamp' --field-selector involvedObject.kind=Pod | grep "$SERVICE_NAME" | tail -20 || true
