@@ -60,7 +60,7 @@ public class AuthServiceImpl implements AuthService {
             throw new GrpcStatusException(Status.UNAVAILABLE, "用户服务不可用", e);
         }
 
-        if (!rpcResponse.getSuccess()) {
+        if (rpcResponse.getCode() == 0) {
             throw new GrpcStatusException(Status.UNAUTHENTICATED, "Invalid username or password");
         }
 
@@ -135,16 +135,16 @@ public class AuthServiceImpl implements AuthService {
         }
 
         // 3. 生成新的 Access Token
-        UserDataRequest rpcRequest = UserDataRequest.newBuilder().setUserid(userId).build();
+        UserDataRequest rpcRequest = UserDataRequest.newBuilder().setUserId(userId).build();
         UserDataResponse  rpcResponse;
         try {
-            rpcResponse = userServiceStub.getUserId(rpcRequest);
+            rpcResponse = userServiceStub.getUserData(rpcRequest);
         } catch (StatusRuntimeException e) {
             throw new GrpcStatusException(Status.UNAVAILABLE, "用户服务不可用", e);
         } catch (Exception e) {
             throw new GrpcStatusException(Status.UNAVAILABLE, "用户服务不可用", e);
         }
-        String newAccessToken = jwtTokenProvider.generateAccessToken(userId, rpcResponse.getUsername());
+        String newAccessToken = jwtTokenProvider.generateAccessToken(userId, rpcResponse.getNickname());
 
         // 4. refreshToken轮换，再重新生成refreshToken
         String newRefreshToken = jwtTokenProvider.generateRefreshToken(userId);

@@ -1,0 +1,44 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "auth-service.fullname" . }}-config
+  labels:
+    {{- include "auth-service.labels" . | nindent 4 }}
+data:
+  application.yml: |
+    server:
+      port: {{ .Values.config.server.port }}
+      tomcat:
+        uri-encoding: {{ .Values.config.server.tomcatUriEncoding }}
+    spring:
+      application:
+        name: {{ .Values.config.spring.applicationName }}
+      cloud:
+        nacos:
+          server-addr: {{ .Values.config.spring.nacos.serverAddr }}
+          config:
+            enabled: {{ .Values.config.spring.nacos.configEnabled }}
+            file-extension: {{ .Values.config.spring.nacos.fileExtension }}
+            shared-configs:
+{{ range .Values.config.spring.nacos.sharedConfigs }}
+              - data-id: {{ .dataId }}
+                refresh: {{ .refresh }}
+{{- end }}
+          discovery:
+            enabled: {{ .Values.config.spring.nacos.discoveryEnabled }}
+            register-enabled: {{ .Values.config.spring.nacos.registerEnabled }}
+      data:
+        redis:
+          host: {{ .Values.config.spring.redis.host }}
+          port: {{ .Values.config.spring.redis.port }}
+          database: {{ .Values.config.spring.redis.database }}
+    grpc:
+      server:
+        port: {{ .Values.config.grpc.serverPort }}
+      client:
+        user-service:
+          address: {{ .Values.config.grpc.userService.address }}
+          negotiation-type: {{ .Values.config.grpc.userService.negotiationType }}
+{{ if .Values.config.extraYaml }}
+{{ .Values.config.extraYaml | nindent 4 }}
+{{- end }}

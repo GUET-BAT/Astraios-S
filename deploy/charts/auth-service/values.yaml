@@ -1,0 +1,77 @@
+replicaCount: 1
+
+image:
+  repository: harbor.g-oss.top/astraios/auth-service
+  tag: "latest"
+  pullPolicy: IfNotPresent
+imagePullSecrets:
+  - name: harbor-credential
+
+service:
+  type: ClusterIP
+  grpcPort: 9090
+
+probes:
+  liveness:
+    enabled: true
+    tcpSocket:
+      port: 9090
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 2
+    failureThreshold: 3
+    successThreshold: 1
+  readiness:
+    enabled: true
+    tcpSocket:
+      port: 9090
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    timeoutSeconds: 2
+    failureThreshold: 3
+    successThreshold: 1
+
+springProfilesActive: ""
+javaToolOptions: ""
+
+config:
+  server:
+    tomcatUriEncoding: UTF-8
+  spring:
+    applicationName: auth-service
+    redis:
+      host: redis
+      port: 6379
+      database: 0
+    nacos:
+      serverAddr: nacos:8848
+      configEnabled: false
+      fileExtension: yaml
+      sharedConfigs:
+        - dataId: shared-spring.yaml
+          refresh: false
+        - dataId: shared-redis.yaml
+          refresh: false
+        - dataId: shared-mybatis.yaml
+          refresh: false
+        - dataId: shared-logs.yaml
+          refresh: false
+      discoveryEnabled: false
+      registerEnabled: false
+  grpc:
+    serverPort: 9091
+    userService:
+      address: static://user-service:8080
+      negotiationType: plaintext
+  extraYaml: ""
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+nodeSelector: {}
+tolerations: []
+affinity: {}
