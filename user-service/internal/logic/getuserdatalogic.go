@@ -67,7 +67,7 @@ func (l *GetUserDataLogic) GetUserData(in *userpb.UserDataRequest) (*userpb.User
 
 	queryCtx, cancel := context.WithTimeout(l.ctx, dbQueryTimeout)
 	defer cancel()
-	err = l.svcCtx.SqlConn.QueryRowCtx(queryCtx, &record, `
+	err = l.svcCtx.ReadConn.QueryRowCtx(queryCtx, &record, `
 SELECT user_id, nickname, avatar, gender, birthday, bio, background_image, country, province, city,
        school, major, graduation_year, created_at, updated_at
 FROM t_user_profile

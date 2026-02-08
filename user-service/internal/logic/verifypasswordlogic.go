@@ -45,7 +45,7 @@ func (l *VerifyPasswordLogic) VerifyPassword(in *userpb.VerifyPasswordRequest) (
 	}
 	queryCtx, cancel := context.WithTimeout(l.ctx, dbQueryTimeout)
 	defer cancel()
-	err := l.svcCtx.SqlConn.QueryRowCtx(queryCtx, &record,
+	err := l.svcCtx.ReadConn.QueryRowCtx(queryCtx, &record,
 		`SELECT id, password, status FROM t_user WHERE username = ? AND deleted_at IS NULL LIMIT 1`, username)
 	if err != nil {
 		if errors.Is(err, sqlx.ErrNotFound) {

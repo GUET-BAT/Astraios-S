@@ -49,7 +49,8 @@ func (l *RegisterLogic) Register(in *userpb.RegisterRequest) (*userpb.RegisterRe
 	var count int64
 	queryCtx, cancel := context.WithTimeout(l.ctx, dbQueryTimeout)
 	defer cancel()
-	err := l.svcCtx.SqlConn.QueryRowCtx(queryCtx, &count,
+	// Use WriteConn for existence check to avoid false negatives from replication lag.
+	err := l.svcCtx.WriteConn.QueryRowCtx(queryCtx, &count,
 		`SELECT COUNT(1) FROM t_user WHERE username = ? AND deleted_at IS NULL`, username)
 	if err != nil {
 		l.Errorf("register: query user failed: %v", err)
@@ -66,7 +67,7 @@ func (l *RegisterLogic) Register(in *userpb.RegisterRequest) (*userpb.RegisterRe
 	}
 
 	userID := generateUserID()
-	err = l.svcCtx.SqlConn.TransactCtx(l.ctx, func(ctx context.Context, session sqlx.Session) error {
+	err = l.svcCtx.WriteConn.TransactCtx(l.ctx, func(ctx context.Context, session sqlx.Session) error {
 		if _, err := session.ExecCtx(ctx,
 			`INSERT INTO t_user (id, username, password, status) VALUES (?, ?, ?, 1)`,
 			userID, username, string(hashed)); err != nil {
