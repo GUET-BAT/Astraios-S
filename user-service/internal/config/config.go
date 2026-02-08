@@ -2,14 +2,25 @@ package config
 
 import (
 	"github.com/zeromicro/go-zero/core/stores/redis"
-	"github.com/zeromicro/go-zero/core/stores/sqlx"
 	"github.com/zeromicro/go-zero/zrpc"
 )
+
+// MysqlConf holds read/write split MySQL configuration.
+// Address is the MySQL host, WPort is the write port, RPort is the read port.
+type MysqlConf struct {
+	Address  string `json:"address"`
+	WPort    int    `json:"wport"`
+	RPort    int    `json:"rport"`
+	Username string `json:"username"`
+	Password string `json:"password"`
+	Database string `json:"database"`
+	Params   string `json:",default=charset=utf8mb4&parseTime=true&loc=Local"`
+}
 
 type Config struct {
 	zrpc.RpcServerConf
 	CommonService zrpc.RpcClientConf
 	ConfigDataId  string `json:",optional"`
-	Sql           sqlx.SqlConf    `json:"sql"`
+	Mysql         MysqlConf       `json:"mysql"`
 	CacheRedis    redis.RedisConf `json:"cacheRedis"`
 }
