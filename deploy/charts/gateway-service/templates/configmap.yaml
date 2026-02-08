@@ -16,7 +16,13 @@ data:
       NonBlock: {{ .Values.config.userService.nonBlock }}
       Middlewares:
         Breaker: {{ .Values.config.userService.middlewares.breaker }}
+    AuthService:
+      Endpoints:
+{{ toYaml .Values.config.authService.endpoints | nindent 8 }}
+      Timeout: {{ .Values.config.authService.timeout }}
+      NonBlock: {{ .Values.config.authService.nonBlock }}
+      Middlewares:
+        Breaker: {{ .Values.config.authService.middlewares.breaker }}
     JwtAuth:
-      JwksUrl: {{ .Values.config.jwtAuth.jwksUrl }}
       Issuer: {{ .Values.config.jwtAuth.issuer }}
       CacheSeconds: {{ .Values.config.jwtAuth.cacheSeconds }}

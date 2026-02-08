@@ -11,11 +11,11 @@ import (
 type Config struct {
 	rest.RestConf
 	UserService zrpc.RpcClientConf
+	AuthService zrpc.RpcClientConf
 	JwtAuth     JwtAuthConf `json:",optional"`
 }
 
 type JwtAuthConf struct {
-	JwksUrl      string `json:",optional"`
 	Issuer       string `json:",optional"`
 	CacheSeconds int64  `json:",default=300"`
 }

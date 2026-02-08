@@ -2,7 +2,7 @@ syntax = "proto3";
 
 option java_package = "com.astraios.grpc.auth";
 option java_multiple_files = true;
-option go_package = "github.com/GUET-BAT/Astraios-S/auth-service/pb/authpb";
+option go_package = "github.com/GUET-BAT/Astraios-S/gateway-service/pb/authpb";
 
 package auth;
 
