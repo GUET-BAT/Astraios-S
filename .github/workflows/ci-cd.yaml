@@ -283,7 +283,7 @@ jobs:
       needs.detect-changes.outputs.has_changes == 'true' && 
       (github.event_name != 'workflow_dispatch' || github.event.inputs.deploy_only != 'true')
     # Self-hosted runner is required to push images to internal Harbor registry
-    runs-on: ‎ubuntu-latest
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         service: ${{fromJson(needs.detect-changes.outputs.matrix)}}
