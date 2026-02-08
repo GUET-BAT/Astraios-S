@@ -17,6 +17,6 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	return &ServiceContext{
 		Config:  c,
 		SqlConn: sqlx.MustNewConn(c.Sql),
-		Redis:   redis.MustNewRedis(c.Redis),
+		Redis:   redis.MustNewRedis(c.CacheRedis),
 	}
 }
