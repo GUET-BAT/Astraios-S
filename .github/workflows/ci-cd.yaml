@@ -363,7 +363,10 @@ jobs:
   deploy:
     needs: [detect-changes]
     if: github.event_name == 'workflow_dispatch' && (needs.detect-changes.outputs.has_changes == 'true' || github.event.inputs.deploy_only == 'true')
-    runs-on: ubuntu-latest
+    # Self-hosted runner is required to access the internal K8s API server (10.x.x.x)
+    # To use GitHub-hosted runner instead, change to 'ubuntu-latest' and ensure
+    # the K8s API server is publicly accessible or reachable via VPN/tunnel
+    runs-on: self-hosted
     strategy:
       matrix:
         service: ${{fromJson(needs.detect-changes.outputs.matrix)}}
