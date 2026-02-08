@@ -118,8 +118,6 @@
 		<dependency>
 			<groupId>io.grpc</groupId>
 			<artifactId>grpc-testing</artifactId>
-			<version>${grpc.version}</version>
-<!--			<scope>test</scope>-->
 		</dependency>
 		<!-- Spring-Test-Support (Optional) -->
 
@@ -138,6 +136,17 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+				<version>${spring-boot.version}</version>
+				<configuration>
+					<mainClass>com.astraios.auth.AuthApplication</mainClass>
+				</configuration>
+				<executions>
+					<execution>
+						<goals>
+							<goal>repackage</goal>
+						</goals>
+					</execution>
+				</executions>
 			</plugin>
 			<plugin>
 				<groupId>org.xolstice.maven.plugins</groupId>
