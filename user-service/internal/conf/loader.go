@@ -2,7 +2,9 @@ package conf
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	commonpb "github.com/GUET-BAT/Astraios-S/common-service/pb/commonpb"
@@ -11,6 +13,7 @@ import (
 	zconf "github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/zrpc"
+	"gopkg.in/yaml.v3"
 )
 
 const remoteTimeout = 5 * time.Second
@@ -47,9 +50,102 @@ func loadRemoteConfig(c *config.Config) error {
 		return fmt.Errorf("load config failed: %s", resp.Message)
 	}
 
-	if err := zconf.LoadFromYamlBytes([]byte(resp.Config), c); err != nil {
+	return mergeRemoteConfig(c, resp.Config)
+}
+
+func mergeRemoteConfig(c *config.Config, remoteYaml string) error {
+	if strings.TrimSpace(remoteYaml) == "" {
+		return nil
+	}
+
+	localMap, err := structToMap(c)
+	if err != nil {
 		return err
 	}
 
-	return nil
+	remoteMap, err := yamlToMap(remoteYaml)
+	if err != nil {
+		return err
+	}
+
+	merged := mergeMaps(localMap, remoteMap)
+	mergedJSON, err := json.Marshal(merged)
+	if err != nil {
+		return err
+	}
+
+	return zconf.LoadFromJsonBytes(mergedJSON, c)
+}
+
+func structToMap(v any) (map[string]any, error) {
+	data, err := json.Marshal(v)
+	if err != nil {
+		return nil, err
+	}
+
+	var m map[string]any
+	if err := json.Unmarshal(data, &m); err != nil {
+		return nil, err
+	}
+
+	return m, nil
+}
+
+func yamlToMap(content string) (map[string]any, error) {
+	var m map[string]any
+	if err := yaml.Unmarshal([]byte(content), &m); err != nil {
+		return nil, err
+	}
+
+	normalized := normalizeValue(m)
+	nm, ok := normalized.(map[string]any)
+	if !ok {
+		return map[string]any{}, nil
+	}
+
+	return nm, nil
+}
+
+func normalizeValue(v any) any {
+	switch val := v.(type) {
+	case map[string]any:
+		for k, vv := range val {
+			val[k] = normalizeValue(vv)
+		}
+		return val
+	case map[any]any:
+		out := make(map[string]any, len(val))
+		for k, vv := range val {
+			out[fmt.Sprint(k)] = normalizeValue(vv)
+		}
+		return out
+	case []any:
+		for i, vv := range val {
+			val[i] = normalizeValue(vv)
+		}
+		return val
+	default:
+		return v
+	}
+}
+
+func mergeMaps(dst, src map[string]any) map[string]any {
+	if dst == nil {
+		dst = map[string]any{}
+	}
+
+	for k, v := range src {
+		dv, ok := dst[k]
+		if ok {
+			dm, okDst := dv.(map[string]any)
+			sm, okSrc := v.(map[string]any)
+			if okDst && okSrc {
+				dst[k] = mergeMaps(dm, sm)
+				continue
+			}
+		}
+		dst[k] = v
+	}
+
+	return dst
 }
