@@ -20,7 +20,7 @@ type MysqlConf struct {
 type Config struct {
 	zrpc.RpcServerConf
 	CommonService zrpc.RpcClientConf
-	ConfigDataId  string          `json:",optinal"`
+	ConfigDataId  string          `json:",optional"`
 	Mysql         MysqlConf       `json:"mysql,optional"`
 	CacheRedis    redis.RedisConf `json:"cacheRedis,optional"`
 }
