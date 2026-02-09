@@ -1,6 +1,6 @@
 Name: user.rpc
 ListenOn: 0.0.0.0:8080
-ConfigDataId: nacos.user-service.core.config
+ConfigDataId: user-service.core.config
 CommonService:
   Endpoints:
     - common-service:8080
