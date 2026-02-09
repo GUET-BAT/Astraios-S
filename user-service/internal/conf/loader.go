@@ -4,7 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
+	"reflect"
 	"strings"
+	"sync"
 	"time"
 
 	commonpb "github.com/GUET-BAT/Astraios-S/common-service/pb/commonpb"
@@ -12,6 +15,7 @@ import (
 
 	zconf "github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/mapping"
 	"github.com/zeromicro/go-zero/zrpc"
 	"gopkg.in/yaml.v3"
 )
@@ -21,10 +25,10 @@ const remoteTimeout = 5 * time.Second
 // MustLoad loads local config first, then fetches runtime config from common-service.
 func MustLoad(path string, c *config.Config) {
 	zconf.MustLoad(path, c)
-	logx.Must(loadRemoteConfig(c))
+	logx.Must(loadRemoteConfig(path, c))
 }
 
-func loadRemoteConfig(c *config.Config) error {
+func loadRemoteConfig(path string, c *config.Config) error {
 	if c.ConfigDataId == "" {
 		return fmt.Errorf("ConfigDataId is required")
 	}
@@ -50,23 +54,35 @@ func loadRemoteConfig(c *config.Config) error {
 		return fmt.Errorf("load config failed: %s", resp.Message)
 	}
 
-	return mergeRemoteConfig(c, resp.Config)
+	return mergeRemoteConfig(path, c, resp.Config)
 }
 
-func mergeRemoteConfig(c *config.Config, remoteYaml string) error {
+func mergeRemoteConfig(path string, c *config.Config, remoteYaml string) error {
 	if strings.TrimSpace(remoteYaml) == "" {
 		return nil
 	}
 
-	localMap, err := structToMap(c)
+	localMap, err := loadLocalConfigMap(path)
 	if err != nil {
-		return err
+		localMap, err = structToMap(c)
+		if err != nil {
+			return err
+		}
 	}
 
 	remoteMap, err := yamlToMap(remoteYaml)
 	if err != nil {
 		return err
 	}
+
+	info, err := getConfigFieldInfo()
+	if err != nil {
+		return err
+	}
+
+	localMap = canonicalizeWithInfo(localMap, info)
+	remoteMap = canonicalizeWithInfo(remoteMap, info)
+	remoteMap = pruneEmptyStringsMap(remoteMap)
 
 	merged := mergeMaps(localMap, remoteMap)
 	mergedJSON, err := json.Marshal(merged)
@@ -75,6 +91,19 @@ func mergeRemoteConfig(c *config.Config, remoteYaml string) error {
 	}
 
 	return zconf.LoadFromJsonBytes(mergedJSON, c)
+}
+
+func loadLocalConfigMap(path string) (map[string]any, error) {
+	content, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	if strings.TrimSpace(string(content)) == "" {
+		return map[string]any{}, nil
+	}
+
+	return yamlToMap(string(content))
 }
 
 func structToMap(v any) (map[string]any, error) {
@@ -88,7 +117,7 @@ func structToMap(v any) (map[string]any, error) {
 		return nil, err
 	}
 
-	return canonicalizeMapKeys(m), nil
+	return m, nil
 }
 
 func yamlToMap(content string) (map[string]any, error) {
@@ -103,7 +132,7 @@ func yamlToMap(content string) (map[string]any, error) {
 		return map[string]any{}, nil
 	}
 
-	return canonicalizeMapKeys(nm), nil
+	return nm, nil
 }
 
 func normalizeValue(v any) any {
@@ -122,37 +151,6 @@ func normalizeValue(v any) any {
 	case []any:
 		for i, vv := range val {
 			val[i] = normalizeValue(vv)
-		}
-		return val
-	default:
-		return v
-	}
-}
-
-// canonicalizeMapKeys lowercases all keys to align with go-zero config canonicalization.
-// This avoids case-only duplicates (e.g. ConfigDataId vs configDataId) causing nondeterminism.
-func canonicalizeMapKeys(m map[string]any) map[string]any {
-	out := make(map[string]any, len(m))
-	for k, v := range m {
-		lk := strings.ToLower(k)
-		out[lk] = canonicalizeValue(v)
-	}
-	return out
-}
-
-func canonicalizeValue(v any) any {
-	switch val := v.(type) {
-	case map[string]any:
-		return canonicalizeMapKeys(val)
-	case map[any]any:
-		out := make(map[string]any, len(val))
-		for k, vv := range val {
-			out[strings.ToLower(fmt.Sprint(k))] = canonicalizeValue(vv)
-		}
-		return out
-	case []any:
-		for i, vv := range val {
-			val[i] = canonicalizeValue(vv)
 		}
 		return val
 	default:
@@ -179,4 +177,248 @@ func mergeMaps(dst, src map[string]any) map[string]any {
 	}
 
 	return dst
+}
+
+// pruneEmptyStringsMap removes keys whose value is an empty string (or becomes empty after pruning).
+// This prevents remote empty values from overriding local defaults.
+func pruneEmptyStringsMap(m map[string]any) map[string]any {
+	if m == nil {
+		return m
+	}
+
+	for k, v := range m {
+		nv, keep := pruneEmptyStringsValue(v)
+		if !keep {
+			delete(m, k)
+			continue
+		}
+		m[k] = nv
+	}
+
+	return m
+}
+
+func pruneEmptyStringsValue(v any) (any, bool) {
+	switch vv := v.(type) {
+	case string:
+		if strings.TrimSpace(vv) == "" {
+			return nil, false
+		}
+		return vv, true
+	case map[string]any:
+		pruned := pruneEmptyStringsMap(vv)
+		return pruned, true
+	case map[any]any:
+		converted := make(map[string]any, len(vv))
+		for k, vvv := range vv {
+			converted[fmt.Sprint(k)] = vvv
+		}
+		pruned := pruneEmptyStringsMap(converted)
+		return pruned, true
+	case []any:
+		out := make([]any, 0, len(vv))
+		for _, item := range vv {
+			nv, keep := pruneEmptyStringsValue(item)
+			if keep {
+				out = append(out, nv)
+			}
+		}
+		if len(out) == 0 {
+			return nil, false
+		}
+		return out, true
+	default:
+		return v, true
+	}
+}
+
+type fieldInfo struct {
+	children map[string]*fieldInfo
+	mapField *fieldInfo
+}
+
+var (
+	configFieldInfo     *fieldInfo
+	configFieldInfoOnce sync.Once
+	configFieldInfoErr  error
+)
+
+func getConfigFieldInfo() (*fieldInfo, error) {
+	configFieldInfoOnce.Do(func() {
+		configFieldInfo, configFieldInfoErr = buildFieldsInfo(reflect.TypeOf(config.Config{}), "")
+	})
+	return configFieldInfo, configFieldInfoErr
+}
+
+func canonicalizeWithInfo(m map[string]any, info *fieldInfo) map[string]any {
+	if info == nil {
+		return m
+	}
+
+	res := make(map[string]any, len(m))
+	for k, v := range m {
+		if ti, ok := info.children[k]; ok {
+			res[k] = canonicalizeValueWithInfo(v, ti)
+			continue
+		}
+
+		lk := strings.ToLower(k)
+		if ti, ok := info.children[lk]; ok {
+			res[lk] = canonicalizeValueWithInfo(v, ti)
+		} else if info.mapField != nil {
+			res[k] = canonicalizeValueWithInfo(v, info.mapField)
+		} else if vv, ok := v.(map[string]any); ok {
+			res[k] = canonicalizeWithInfo(vv, info)
+		} else {
+			res[k] = v
+		}
+	}
+
+	return res
+}
+
+func canonicalizeValueWithInfo(v any, info *fieldInfo) any {
+	switch vv := v.(type) {
+	case map[string]any:
+		return canonicalizeWithInfo(vv, info)
+	case map[any]any:
+		m := make(map[string]any, len(vv))
+		for k, vvv := range vv {
+			m[fmt.Sprint(k)] = vvv
+		}
+		return canonicalizeWithInfo(m, info)
+	case []any:
+		arr := make([]any, 0, len(vv))
+		for _, vvv := range vv {
+			arr = append(arr, canonicalizeValueWithInfo(vvv, info))
+		}
+		return arr
+	default:
+		return v
+	}
+}
+
+func buildFieldsInfo(tp reflect.Type, fullName string) (*fieldInfo, error) {
+	tp = mapping.Deref(tp)
+
+	switch tp.Kind() {
+	case reflect.Struct:
+		return buildStructFieldsInfo(tp, fullName)
+	case reflect.Array, reflect.Slice, reflect.Map:
+		return buildFieldsInfo(mapping.Deref(tp.Elem()), fullName)
+	default:
+		return &fieldInfo{
+			children: make(map[string]*fieldInfo),
+		}, nil
+	}
+}
+
+func buildStructFieldsInfo(tp reflect.Type, fullName string) (*fieldInfo, error) {
+	info := &fieldInfo{
+		children: make(map[string]*fieldInfo),
+	}
+
+	for i := 0; i < tp.NumField(); i++ {
+		field := tp.Field(i)
+		if !field.IsExported() {
+			continue
+		}
+
+		name := getTagName(field)
+		lowerCaseName := strings.ToLower(name)
+		ft := mapping.Deref(field.Type)
+		if field.Anonymous {
+			if err := buildAnonymousFieldInfo(info, lowerCaseName, ft, fullName); err != nil {
+				return nil, err
+			}
+		} else if err := buildNamedFieldInfo(info, lowerCaseName, ft); err != nil {
+			return nil, err
+		}
+	}
+
+	return info, nil
+}
+
+func buildNamedFieldInfo(info *fieldInfo, lowerCaseName string, ft reflect.Type) error {
+	var finfo *fieldInfo
+	var err error
+
+	switch ft.Kind() {
+	case reflect.Struct:
+		finfo, err = buildFieldsInfo(ft, lowerCaseName)
+	case reflect.Array, reflect.Slice:
+		finfo, err = buildFieldsInfo(ft.Elem(), lowerCaseName)
+	case reflect.Map:
+		elemInfo, err := buildFieldsInfo(mapping.Deref(ft.Elem()), lowerCaseName)
+		if err != nil {
+			return err
+		}
+		finfo = &fieldInfo{
+			children: make(map[string]*fieldInfo),
+			mapField: elemInfo,
+		}
+	default:
+		finfo, err = buildFieldsInfo(ft, lowerCaseName)
+	}
+	if err != nil {
+		return err
+	}
+
+	if info.children[lowerCaseName] != nil {
+		return fmt.Errorf("conflict config key: %s", lowerCaseName)
+	}
+
+	info.children[lowerCaseName] = finfo
+	return nil
+}
+
+func buildAnonymousFieldInfo(info *fieldInfo, lowerCaseName string, ft reflect.Type, fullName string) error {
+	switch ft.Kind() {
+	case reflect.Struct:
+		fields, err := buildFieldsInfo(ft, fullName)
+		if err != nil {
+			return err
+		}
+		for k, v := range fields.children {
+			if info.children[k] != nil {
+				return fmt.Errorf("conflict config key: %s", k)
+			}
+			info.children[k] = v
+		}
+	case reflect.Map:
+		elemField, err := buildFieldsInfo(mapping.Deref(ft.Elem()), fullName)
+		if err != nil {
+			return err
+		}
+		if info.children[lowerCaseName] != nil {
+			return fmt.Errorf("conflict config key: %s", lowerCaseName)
+		}
+		info.children[lowerCaseName] = &fieldInfo{
+			children: make(map[string]*fieldInfo),
+			mapField: elemField,
+		}
+	default:
+		if info.children[lowerCaseName] != nil {
+			return fmt.Errorf("conflict config key: %s", lowerCaseName)
+		}
+		info.children[lowerCaseName] = &fieldInfo{
+			children: make(map[string]*fieldInfo),
+		}
+	}
+
+	return nil
+}
+
+func getTagName(field reflect.StructField) string {
+	if tag, ok := field.Tag.Lookup("json"); ok {
+		if pos := strings.IndexByte(tag, ','); pos >= 0 {
+			tag = tag[:pos]
+		}
+		tag = strings.TrimSpace(tag)
+		if len(tag) > 0 {
+			return tag
+		}
+	}
+
+	return field.Name
 }
