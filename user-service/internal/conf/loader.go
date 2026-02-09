@@ -88,7 +88,7 @@ func structToMap(v any) (map[string]any, error) {
 		return nil, err
 	}
 
-	return m, nil
+	return canonicalizeMapKeys(m), nil
 }
 
 func yamlToMap(content string) (map[string]any, error) {
@@ -103,7 +103,7 @@ func yamlToMap(content string) (map[string]any, error) {
 		return map[string]any{}, nil
 	}
 
-	return nm, nil
+	return canonicalizeMapKeys(nm), nil
 }
 
 func normalizeValue(v any) any {
@@ -122,6 +122,37 @@ func normalizeValue(v any) any {
 	case []any:
 		for i, vv := range val {
 			val[i] = normalizeValue(vv)
+		}
+		return val
+	default:
+		return v
+	}
+}
+
+// canonicalizeMapKeys lowercases all keys to align with go-zero config canonicalization.
+// This avoids case-only duplicates (e.g. ConfigDataId vs configDataId) causing nondeterminism.
+func canonicalizeMapKeys(m map[string]any) map[string]any {
+	out := make(map[string]any, len(m))
+	for k, v := range m {
+		lk := strings.ToLower(k)
+		out[lk] = canonicalizeValue(v)
+	}
+	return out
+}
+
+func canonicalizeValue(v any) any {
+	switch val := v.(type) {
+	case map[string]any:
+		return canonicalizeMapKeys(val)
+	case map[any]any:
+		out := make(map[string]any, len(val))
+		for k, vv := range val {
+			out[strings.ToLower(fmt.Sprint(k))] = canonicalizeValue(vv)
+		}
+		return out
+	case []any:
+		for i, vv := range val {
+			val[i] = canonicalizeValue(vv)
 		}
 		return val
 	default:
