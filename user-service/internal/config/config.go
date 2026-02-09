@@ -14,13 +14,13 @@ type MysqlConf struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
 	Database string `json:"database"`
-	Params   string `json:",default=charset=utf8mb4&parseTime=true&loc=Local"`
+	Params   string `json:"params"`
 }
 
 type Config struct {
 	zrpc.RpcServerConf
 	CommonService zrpc.RpcClientConf
-	ConfigDataId  string          `json:",optional"`
-	Mysql         MysqlConf       `json:"mysql,optional"`
-	CacheRedis    redis.RedisConf `json:"cacheRedis,optional"`
+	ConfigDataId  string          `json:",omitempty"`
+	Mysql         MysqlConf       `json:"mysql,omitempty"`
+	CacheRedis    redis.RedisConf `json:"cacheRedis,omitempty"`
 }
