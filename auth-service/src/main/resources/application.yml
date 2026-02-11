@@ -6,32 +6,39 @@ spring:
   application:
     name: auth-service
   cloud:
-    nacos:
-      server-addr: localhost:8848
-      config:
-        enabled: false
-        file-extension: yaml
-        shared-configs:
-          - data-id: shared-spring.yaml
-            refresh: false
-          - data-id: shared-redis.yaml
-            refresh: false
-          - data-id: shared-mybatis.yaml
-            refresh: false
-          - data-id: shared-logs.yaml
-            refresh: false
+    kubernetes:
+      enabled: true
       discovery:
-        enabled: false
-        register-enabled: false
+        enabled: true
+        all-namespaces: false
+        include-not-ready-addresses: false
+        primary-port-name: grpc
   data:
     redis:
       host: localhost
       port: 6379
       database: 0
+
+auth:
+  remote-config:
+    enabled: true
+    fail-fast: true
+    nacos-data-id: auth-service-key
+    timeout-ms: 3000
+
 grpc:
   server:
     port: 9090
   client:
     user-service:
-      address: static://127.0.0.1:8080
+      address: discovery:///user-service
+      defaultLoadBalancingPolicy: round_robin
       negotiation-type: plaintext
+    common-service:
+      address: discovery:///common-service
+      defaultLoadBalancingPolicy: round_robin
+      negotiation-type: plaintext
+management:
+  endpoints:
+    web.exposure.include: health,info
+  endpoint.health.probes.enabled: true
