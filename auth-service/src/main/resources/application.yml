@@ -18,7 +18,7 @@ auth:
   remote-config:
     enabled: true
     fail-fast: true
-    nacos-data-id: auth-service-key
+    nacos-data-id: auth-service.key.config.yaml
     timeout-ms: 3000
 
 grpc:
