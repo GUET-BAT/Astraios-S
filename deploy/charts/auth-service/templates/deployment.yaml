@@ -27,6 +27,15 @@ spec:
             - name: grpc
               containerPort: {{ .Values.service.grpcPort }}
               protocol: TCP
+{{- if .Values.probes.startup.enabled }}
+          startupProbe:
+            tcpSocket:
+              port: {{ .Values.probes.startup.tcpSocket.port }}
+            periodSeconds: {{ .Values.probes.startup.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.startup.timeoutSeconds }}
+            failureThreshold: {{ .Values.probes.startup.failureThreshold }}
+            successThreshold: {{ .Values.probes.startup.successThreshold }}
+{{- end }}
 {{- if .Values.probes.liveness.enabled }}
           livenessProbe:
             tcpSocket:

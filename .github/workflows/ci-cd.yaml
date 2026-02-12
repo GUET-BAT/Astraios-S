@@ -434,6 +434,7 @@ jobs:
           # Deploy with Helm
           helm upgrade --install $SERVICE_NAME ./deploy/charts/$SERVICE_NAME \
             --namespace $NAMESPACE \
+            --reset-values \
             --set image.repository=$HARBOR_URL/$HARBOR_PROJECT/$SERVICE_NAME \
             --set image.tag=$IMAGE_TAG \
             --set fullnameOverride=$SERVICE_NAME \
