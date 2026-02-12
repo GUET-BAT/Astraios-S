@@ -428,11 +428,21 @@ jobs:
           IMAGE_TAG="${{ needs.detect-changes.outputs.image_tag }}"
           SERVICE_NAME=${{ matrix.service.name }}
           NAMESPACE="astraios"
+          CHART_VERSION="${{ github.event.inputs.chart_version }}"
           
-          echo "Deploying $SERVICE_NAME with image tag: $IMAGE_TAG to namespace: $NAMESPACE"
+          if [ -n "$CHART_VERSION" ]; then
+            if ! echo "$CHART_VERSION" | grep -qE '^[0-9]+\\.[0-9]+\\.[0-9]+$'; then
+              echo "Error: Invalid chart_version format. Expected semver like 0.0.123."
+              exit 1
+            fi
+            echo "Deploying $SERVICE_NAME with image tag: $IMAGE_TAG, chart version: $CHART_VERSION to namespace: $NAMESPACE"
+          else
+            echo "Deploying $SERVICE_NAME with image tag: $IMAGE_TAG using latest chart to namespace: $NAMESPACE"
+          fi
           
-          # Deploy with Helm
-          helm upgrade --install $SERVICE_NAME ./deploy/charts/$SERVICE_NAME \
+          # Deploy with Helm (pull chart from Harbor OCI registry)
+          helm registry login $HARBOR_URL -u "${{ secrets.HARBOR_CHART_USERNAME }}" -p "${{ secrets.HARBOR_CHART_PASSWORD }}"
+          helm upgrade --install $SERVICE_NAME oci://$HARBOR_URL/$HARBOR_CHART_PROJECT/$SERVICE_NAME \
             --namespace $NAMESPACE \
             --reset-values \
             --set image.repository=$HARBOR_URL/$HARBOR_PROJECT/$SERVICE_NAME \
