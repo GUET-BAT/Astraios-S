@@ -8,11 +8,11 @@ imagePullSecrets:
   - name: harbor-credential
 
 serviceAccount:
-  create: true
+  create: false
   name: ""
 
 rbac:
-  create: true
+  create: false
 
 service:
   type: ClusterIP
@@ -47,6 +47,8 @@ config:
     tomcatUriEncoding: UTF-8
   spring:
     applicationName: auth-service
+    kubernetes:
+      enabled: false
     redis:
       host: redis
       port: 6379
@@ -70,6 +72,9 @@ config:
     serverPort: 9090
     userService:
       address: static://user-service:8080
+      negotiationType: plaintext
+    commonService:
+      address: static://common-service:8080
       negotiationType: plaintext
   extraYaml: ""
 
