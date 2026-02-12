@@ -3,22 +3,15 @@ spring:
     name: auth-service
   cloud:
     kubernetes:
-      enabled: true
-      discovery:
-        enabled: true
-        all-namespaces: false
-        include-not-ready-addresses: false
-        primary-port-name: grpc
+      enabled: false
 
 grpc:
   client:
     user-service:
-      address: discovery:///user-service
-      defaultLoadBalancingPolicy: round_robin
+      address: static://user-service:8080
       negotiation-type: plaintext
     common-service:
-      address: discovery:///common-service
-      defaultLoadBalancingPolicy: round_robin
+      address: static://common-service:8080
       negotiation-type: plaintext
 management:
   endpoints:
