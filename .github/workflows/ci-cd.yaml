@@ -445,10 +445,14 @@ jobs:
           helm upgrade --install $SERVICE_NAME oci://$HARBOR_URL/$HARBOR_CHART_PROJECT/$SERVICE_NAME \
             --namespace $NAMESPACE \
 <<<<<<< HEAD
+<<<<<<< HEAD
             ${CHART_VERSION:+--version $CHART_VERSION} \
 =======
             --reset-values \
 >>>>>>> 8267171... fix:修复探针重启
+=======
+            --reset-values \
+>>>>>>> a4c937e7b5c12e4b8073a514db786666d5cdea80
             --set image.repository=$HARBOR_URL/$HARBOR_PROJECT/$SERVICE_NAME \
             --set image.tag=$IMAGE_TAG \
             --set fullnameOverride=$SERVICE_NAME \

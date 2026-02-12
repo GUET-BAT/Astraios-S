@@ -19,11 +19,19 @@ service:
   grpcPort: 9090
 
 probes:
+  startup:
+    enabled: true
+    tcpSocket:
+      port: 9090
+    periodSeconds: 5
+    timeoutSeconds: 2
+    failureThreshold: 24
+    successThreshold: 1
   liveness:
     enabled: true
     tcpSocket:
       port: 9090
-    initialDelaySeconds: 10
+    initialDelaySeconds: 30
     periodSeconds: 10
     timeoutSeconds: 2
     failureThreshold: 3
