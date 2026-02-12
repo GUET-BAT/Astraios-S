@@ -7,6 +7,13 @@ image:
 imagePullSecrets:
   - name: harbor-credential
 
+serviceAccount:
+  create: true
+  name: ""
+
+rbac:
+  create: true
+
 service:
   type: ClusterIP
   grpcPort: 9090
@@ -36,6 +43,7 @@ javaToolOptions: ""
 
 config:
   server:
+    port: 8080
     tomcatUriEncoding: UTF-8
   spring:
     applicationName: auth-service
@@ -59,7 +67,7 @@ config:
       discoveryEnabled: false
       registerEnabled: false
   grpc:
-    serverPort: 9091
+    serverPort: 9090
     userService:
       address: static://user-service:8080
       negotiationType: plaintext
