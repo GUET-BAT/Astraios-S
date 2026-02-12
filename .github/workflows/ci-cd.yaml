@@ -2,24 +2,24 @@ name: CI/CD Pipeline
 
 on:
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
     types: [opened, synchronize, reopened, labeled]
   workflow_dispatch:
     inputs:
       deploy_only:
-        description: 'Deploy only (skip CI)'
+        description: "Deploy only (skip CI)"
         required: false
-        default: 'false'
+        default: "false"
         type: choice
         options:
-          - 'false'
-          - 'true'
+          - "false"
+          - "true"
       services:
-        description: 'Services to deploy (comma-separated, e.g., user-service,gateway-service). Leave empty to deploy all changed services.'
+        description: "Services to deploy (comma-separated, e.g., user-service,gateway-service). Leave empty to deploy all changed services."
         required: false
         type: string
       image_tag:
-        description: 'Image tag to deploy (required for deploy_only mode, default: current commit SHA for normal mode)'
+        description: "Image tag to deploy (required for deploy_only mode, default: current commit SHA for normal mode)"
         required: false
         type: string
 
@@ -83,7 +83,7 @@ jobs:
             fi
           fi
           echo "image_tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
-          
+
           # If manual trigger, handle service selection
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             if [ -n "${{ github.event.inputs.services }}" ]; then
@@ -166,10 +166,10 @@ jobs:
               exit 0
             fi
           fi
-          
+
           # Otherwise, detect changed services from git diff
           echo "Auto-detecting changed services from git diff..."
-          
+
           # Ensure base branch is available for diff (PR uses base_ref, manual defaults to main)
           BASE_REF="${{ github.base_ref }}"
           if [ -z "$BASE_REF" ]; then
@@ -180,22 +180,22 @@ jobs:
 
           # Find directories ending with 'service' that have changes
           CHANGED_SERVICES=$(git diff --name-only origin/$BASE_REF...HEAD | grep -E '.*service/' | awk -F/ '{print $1}' | sort | uniq | grep 'service$' || true)
-          
+
           if [ -z "$CHANGED_SERVICES" ]; then
             echo "No service changes detected"
             echo "matrix=[]" >> $GITHUB_OUTPUT
             echo "has_changes=false" >> $GITHUB_OUTPUT
             exit 0
           fi
-          
+
           echo "Changed services detected:"
           echo "$CHANGED_SERVICES"
-          
+
           # Convert to JSON array with service type detection
           JSON_ARRAY="["
           first=true
           valid_services_count=0
-          
+
           for service in $CHANGED_SERVICES; do
             if [ ! -d "$service" ]; then
               echo "Warning: Service directory not found: $service, skipping..."
@@ -222,7 +222,7 @@ jobs:
             echo "✓ Added service: $service (type: $service_type)"
           done
           JSON_ARRAY="$JSON_ARRAY]"
-          
+
           if [ "$valid_services_count" -eq 0 ]; then
             echo "No valid services found after filtering"
             echo "matrix=[]" >> $GITHUB_OUTPUT
@@ -243,22 +243,22 @@ jobs:
       fail-fast: false
     steps:
       - uses: actions/checkout@v4
-      
+
       # Setup Java for Java-based services
       - name: Set up JDK 21
         if: matrix.service.type == 'java'
         uses: actions/setup-java@v4
         with:
-          java-version: '21'
-          distribution: 'temurin'
-          cache: 'maven'
-      
+          java-version: "21"
+          distribution: "temurin"
+          cache: "maven"
+
       # Setup Go for Go-based services
       - name: Set up Go
         if: matrix.service.type == 'go'
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25'
+          go-version: "1.25"
           cache-dependency-path: ${{ matrix.service.name }}/go.sum
 
       # Test Java service
@@ -268,7 +268,7 @@ jobs:
         run: |
           chmod +x mvnw
           ./mvnw test
-      
+
       # Test Go service
       - name: Test Go service
         if: matrix.service.type == 'go'
@@ -291,24 +291,24 @@ jobs:
       fail-fast: false
     steps:
       - uses: actions/checkout@v4
-      
+
       # Setup Java for Java-based services
       - name: Set up JDK 21
         if: matrix.service.type == 'java'
         uses: actions/setup-java@v4
         with:
-          java-version: '21'
-          distribution: 'temurin'
-          cache: 'maven'
-      
+          java-version: "21"
+          distribution: "temurin"
+          cache: "maven"
+
       # Setup Go for Go-based services
       - name: Set up Go
         if: matrix.service.type == 'go'
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25'
+          go-version: "1.25"
           cache-dependency-path: ${{ matrix.service.name }}/go.sum
-          
+
       # Build Java service
       - name: Build Java service with Maven
         if: matrix.service.type == 'java'
@@ -316,7 +316,7 @@ jobs:
         run: |
           chmod +x mvnw
           ./mvnw clean package -DskipTests
-      
+
       # Build Go service
       - name: Build Go service
         if: matrix.service.type == 'go'
@@ -324,7 +324,7 @@ jobs:
           cd ${{ matrix.service.name }}
           go mod download
           go build -v ./...
-          
+
       - name: Login to Harbor
         uses: docker/login-action@v3
         with:
@@ -339,7 +339,7 @@ jobs:
         uses: azure/setup-helm@v3
         with:
           version: v3.12.0
-          
+
       - name: Build and Push Docker image
         uses: docker/build-push-action@v6
         with:
@@ -391,15 +391,15 @@ jobs:
       fail-fast: false
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Install Helm
         uses: azure/setup-helm@v3
         with:
           version: v3.12.0
-          
+
       - name: Set up Kubectl
         uses: azure/setup-kubectl@v3
-        
+
       - name: Setup kubeconfig
         env:
           KUBECONFIG_CONTENT: ${{ secrets.KUBE_CONFIG }}
@@ -414,7 +414,7 @@ jobs:
             echo "$KUBECONFIG_CONTENT" | base64 -d > ~/.kube/config
           fi
           chmod 600 ~/.kube/config
-          
+
           # Verify kubeconfig format
           if ! grep -q "apiVersion:" ~/.kube/config; then
             echo "Error: Invalid kubeconfig format"
@@ -422,14 +422,14 @@ jobs:
             head -n 5 ~/.kube/config
             exit 1
           fi
-          
+
       - name: Deploy to K8s
         run: |
           IMAGE_TAG="${{ needs.detect-changes.outputs.image_tag }}"
           SERVICE_NAME=${{ matrix.service.name }}
           NAMESPACE="astraios"
           CHART_VERSION="${{ github.event.inputs.chart_version }}"
-          
+
           if [ -n "$CHART_VERSION" ]; then
             if ! echo "$CHART_VERSION" | grep -qE '^[0-9]+\\.[0-9]+\\.[0-9]+$'; then
               echo "Error: Invalid chart_version format. Expected semver like 0.0.123."
@@ -439,7 +439,7 @@ jobs:
           else
             echo "Deploying $SERVICE_NAME with image tag: $IMAGE_TAG using latest chart to namespace: $NAMESPACE"
           fi
-          
+
           # Deploy with Helm (pull chart from Harbor OCI registry)
           helm registry login $HARBOR_URL -u "${{ secrets.HARBOR_CHART_USERNAME }}" -p "${{ secrets.HARBOR_CHART_PASSWORD }}"
           helm upgrade --install $SERVICE_NAME oci://$HARBOR_URL/$HARBOR_CHART_PROJECT/$SERVICE_NAME \
@@ -450,7 +450,7 @@ jobs:
             --set fullnameOverride=$SERVICE_NAME \
             --timeout 5m \
             --wait
-          
+
           echo "✅ Deployment completed successfully"
 
       - name: Show deployment status

@@ -14,6 +14,7 @@ spec:
       labels:
         {{- include "auth-service.selectorLabels" . | nindent 8 }}
     spec:
+      serviceAccountName: {{ include "auth-service.serviceAccountName" . }}
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml .Values.imagePullSecrets | nindent 8 }}
@@ -26,6 +27,15 @@ spec:
             - name: grpc
               containerPort: {{ .Values.service.grpcPort }}
               protocol: TCP
+{{- if .Values.probes.startup.enabled }}
+          startupProbe:
+            tcpSocket:
+              port: {{ .Values.probes.startup.tcpSocket.port }}
+            periodSeconds: {{ .Values.probes.startup.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.startup.timeoutSeconds }}
+            failureThreshold: {{ .Values.probes.startup.failureThreshold }}
+            successThreshold: {{ .Values.probes.startup.successThreshold }}
+{{- end }}
 {{- if .Values.probes.liveness.enabled }}
           livenessProbe:
             tcpSocket:
@@ -47,6 +57,10 @@ spec:
             successThreshold: {{ .Values.probes.readiness.successThreshold }}
 {{- end }}
           env:
+            - name: SPRING_CLOUD_KUBERNETES_ENABLED
+              value: {{ .Values.config.spring.kubernetes.enabled | quote }}
+            - name: SPRING_CLOUD_KUBERNETES_DISCOVERY_ENABLED
+              value: {{ .Values.config.spring.kubernetes.enabled | quote }}
             - name: SPRING_CONFIG_ADDITIONAL_LOCATION
               value: /config/
 {{- if .Values.springProfilesActive }}

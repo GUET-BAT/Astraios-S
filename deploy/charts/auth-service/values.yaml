@@ -3,20 +3,35 @@ replicaCount: 1
 image:
   repository: harbor.g-oss.top/astraios/auth-service
   tag: "latest"
-  pullPolicy: IfNotPresent
+  pullPolicy: Always
 imagePullSecrets:
   - name: harbor-credential
+
+serviceAccount:
+  create: false
+  name: ""
+
+rbac:
+  create: false
 
 service:
   type: ClusterIP
   grpcPort: 9090
 
 probes:
+  startup:
+    enabled: true
+    tcpSocket:
+      port: 9090
+    periodSeconds: 5
+    timeoutSeconds: 2
+    failureThreshold: 24
+    successThreshold: 1
   liveness:
     enabled: true
     tcpSocket:
       port: 9090
-    initialDelaySeconds: 10
+    initialDelaySeconds: 30
     periodSeconds: 10
     timeoutSeconds: 2
     failureThreshold: 3
@@ -36,9 +51,12 @@ javaToolOptions: ""
 
 config:
   server:
+    port: 8080
     tomcatUriEncoding: UTF-8
   spring:
     applicationName: auth-service
+    kubernetes:
+      enabled: false
     redis:
       host: redis
       port: 6379
@@ -59,9 +77,12 @@ config:
       discoveryEnabled: false
       registerEnabled: false
   grpc:
-    serverPort: 9091
+    serverPort: 9090
     userService:
       address: static://user-service:8080
+      negotiationType: plaintext
+    commonService:
+      address: static://common-service:8080
       negotiationType: plaintext
   extraYaml: ""
 

@@ -14,6 +14,8 @@ data:
       application:
         name: {{ .Values.config.spring.applicationName }}
       cloud:
+        kubernetes:
+          enabled: {{ .Values.config.spring.kubernetes.enabled }}
         nacos:
           server-addr: {{ .Values.config.spring.nacos.serverAddr }}
           config:
@@ -39,6 +41,9 @@ data:
         user-service:
           address: {{ .Values.config.grpc.userService.address }}
           negotiation-type: {{ .Values.config.grpc.userService.negotiationType }}
+        common-service:
+          address: {{ .Values.config.grpc.commonService.address }}
+          negotiation-type: {{ .Values.config.grpc.commonService.negotiationType }}
 {{ if .Values.config.extraYaml }}
 {{ .Values.config.extraYaml | nindent 4 }}
 {{- end }}
