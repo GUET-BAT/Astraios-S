@@ -48,6 +48,10 @@ spec:
             successThreshold: {{ .Values.probes.readiness.successThreshold }}
 {{- end }}
           env:
+            - name: SPRING_CLOUD_KUBERNETES_ENABLED
+              value: {{ .Values.config.spring.kubernetes.enabled | quote }}
+            - name: SPRING_CLOUD_KUBERNETES_DISCOVERY_ENABLED
+              value: {{ .Values.config.spring.kubernetes.enabled | quote }}
             - name: SPRING_CONFIG_ADDITIONAL_LOCATION
               value: /config/
 {{- if .Values.springProfilesActive }}
