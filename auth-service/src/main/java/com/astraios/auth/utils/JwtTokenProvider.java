@@ -5,6 +5,7 @@ import com.astraios.auth.config.RemoteConfigProperties;
 import com.astraios.grpc.common.CommonServiceGrpc;
 import com.astraios.grpc.common.LoadConfigRequest;
 import com.astraios.grpc.common.LoadConfigResponse;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.grpc.StatusRuntimeException;
@@ -17,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.devh.boot.grpc.client.inject.GrpcClient;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
+import org.yaml.snakeyaml.Yaml;
 
 import java.security.KeyFactory;
 import java.security.KeyPair;
@@ -124,7 +126,7 @@ public class JwtTokenProvider {
     }
 
     private JwtMaterial parseJwtMaterial(String configText) throws Exception {
-        JsonNode root = objectMapper.readTree(configText);
+        JsonNode root = parseConfigTree(configText);
         JsonNode jwtNode = root.path("jwt");
 
         String publicKey = firstText(jwtNode, "public-key", "public_key", "publicKey");
@@ -145,6 +147,18 @@ public class JwtTokenProvider {
             throw new IllegalStateException("missing jwt public/private key in common-service config response");
         }
         return new JwtMaterial(publicKey, privateKey, keyId);
+    }
+
+    private JsonNode parseConfigTree(String configText) throws Exception {
+        try {
+            return objectMapper.readTree(configText);
+        } catch (JsonProcessingException ignored) {
+            Object yamlObj = new Yaml().load(configText);
+            if (yamlObj == null) {
+                throw new IllegalStateException("common-service returned empty yaml config");
+            }
+            return objectMapper.valueToTree(yamlObj);
+        }
     }
 
     private String firstText(JsonNode node, String... names) {
@@ -175,6 +189,9 @@ public class JwtTokenProvider {
     }
 
     private byte[] decodePem(String pem) {
+        if (pem.contains("ssh-rsa ") || pem.contains("ssh-ed25519 ") || pem.contains("ecdsa-sha2-")) {
+            throw new IllegalArgumentException("OpenSSH public key format is not supported. Use PEM public key.");
+        }
         String sanitized = pem
                 .replaceAll("-----BEGIN([\\s\\w]*)KEY-----", "")
                 .replaceAll("-----END([\\s\\w]*)KEY-----", "")
