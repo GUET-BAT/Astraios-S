@@ -1,6 +1,5 @@
 package com.astraios.auth.utils;
 
-
 import com.astraios.auth.config.JwtKeyProperties;
 import com.astraios.auth.config.RemoteConfigProperties;
 import com.astraios.grpc.common.CommonServiceGrpc;
@@ -8,17 +7,13 @@ import com.astraios.grpc.common.LoadConfigRequest;
 import com.astraios.grpc.common.LoadConfigResponse;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.nimbusds.jose.JWSAlgorithm;
-import com.nimbusds.jose.jwk.JWKSet;
-import com.nimbusds.jose.jwk.KeyUse;
-import com.nimbusds.jose.jwk.RSAKey;
+import io.grpc.StatusRuntimeException;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
-import io.grpc.StatusRuntimeException;
 import jakarta.annotation.PostConstruct;
-import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import net.devh.boot.grpc.client.inject.GrpcClient;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -32,6 +27,7 @@ import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -42,30 +38,26 @@ import java.util.concurrent.TimeUnit;
 public class JwtTokenProvider {
 
     private static final String ISSUER = "astraios";
+    private static final String CLAIM_KEY_TYPE = "token_type";
+    private static final String TYPE_ACCESS = "access";
+    private static final String TYPE_REFRESH = "refresh";
+
+    public static final long ACCESS_TOKEN_EXPIRATION = 15 * 60 * 1000;
+    public static final long REFRESH_TOKEN_EXPIRATION = 7 * 24 * 60 * 60 * 1000;
 
     private static volatile KeyPair keyPair;
+    private static String KEY_ID = UUID.randomUUID().toString();
 
     private final JwtKeyProperties keyProperties;
-
     private final RemoteConfigProperties remoteConfigProperties;
-
     private final ObjectMapper objectMapper;
 
     @GrpcClient("common-service")
     private CommonServiceGrpc.CommonServiceBlockingStub commonServiceStub;
 
-    private static String KEY_ID = UUID.randomUUID().toString();
-
-    public static final long ACCESS_TOKEN_EXPIRATION = 15 * 60 * 1000;
-    public static final long REFRESH_TOKEN_EXPIRATION = 7 * 24 * 60 * 60 * 1000;
-
-    private static final String CLAIM_KEY_TYPE = "token_type";
-    private static final String TYPE_ACCESS = "access";
-    private static final String TYPE_REFRESH = "refresh";
-
     @PostConstruct
     public void init() {
-       loadKeys();
+        loadKeys();
     }
 
     private synchronized void loadKeys() {
@@ -175,6 +167,7 @@ public class JwtTokenProvider {
         if (!StringUtils.hasText(publicPem) || !StringUtils.hasText(privatePem)) {
             throw new IllegalArgumentException("jwt.public-key or jwt.private-key is empty");
         }
+
         KeyFactory keyFactory = KeyFactory.getInstance("RSA");
         RSAPublicKey publicKey = (RSAPublicKey) keyFactory.generatePublic(new X509EncodedKeySpec(decodePem(publicPem)));
         RSAPrivateKey privateKey = (RSAPrivateKey) keyFactory.generatePrivate(new PKCS8EncodedKeySpec(decodePem(privatePem)));
@@ -187,10 +180,12 @@ public class JwtTokenProvider {
                 .replaceAll("-----END([\\s\\w]*)KEY-----", "")
                 .replaceAll("\\s", "");
         return Base64.getDecoder().decode(sanitized);
-     }
-    public static long getRefreshTokenTtl(){
+    }
+
+    public static long getRefreshTokenTtl() {
         return REFRESH_TOKEN_EXPIRATION;
     }
+
     public static String generateToken(String uid, long expireTime) {
         Date now = new Date();
         Date expiration = new Date(now.getTime() + expireTime);
@@ -204,11 +199,12 @@ public class JwtTokenProvider {
                 .signWith(keyPair.getPrivate(), Jwts.SIG.RS256)
                 .compact();
     }
-    // 生成 Access Token
+
     public String generateAccessToken(String userId, String username) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("username", username);
-        claims.put(CLAIM_KEY_TYPE, TYPE_ACCESS); // 标记为 Access Token
+        claims.put(CLAIM_KEY_TYPE, TYPE_ACCESS);
+
         return Jwts.builder()
                 .header().keyId(KEY_ID).and()
                 .claims(claims)
@@ -220,10 +216,10 @@ public class JwtTokenProvider {
                 .compact();
     }
 
-    // 生成 Refresh Token
     public String generateRefreshToken(String userId) {
         Map<String, Object> claims = new HashMap<>();
-        claims.put(CLAIM_KEY_TYPE, TYPE_REFRESH); // 标记为 Access Token
+        claims.put(CLAIM_KEY_TYPE, TYPE_REFRESH);
+
         return Jwts.builder()
                 .header().keyId(KEY_ID).and()
                 .claims(claims)
@@ -231,21 +227,19 @@ public class JwtTokenProvider {
                 .subject(userId)
                 .issuer(ISSUER)
                 .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + ACCESS_TOKEN_EXPIRATION))
+                .expiration(new Date(System.currentTimeMillis() + REFRESH_TOKEN_EXPIRATION))
                 .signWith(keyPair.getPrivate(), Jwts.SIG.RS256)
                 .compact();
     }
 
-    // 解析 Token，同时校验签名和过期时间
     public Claims parseToken(String token) {
         return Jwts.parser()
                 .verifyWith(keyPair.getPublic())
                 .build()
-                .parseSignedClaims(token)// 正式校验签名和过期时间
+                .parseSignedClaims(token)
                 .getPayload();
     }
 
-    // 校验 Token 是否过期
     public boolean isTokenExpired(String token) {
         try {
             return parseToken(token).getExpiration().before(new Date());
@@ -254,9 +248,6 @@ public class JwtTokenProvider {
         }
     }
 
-    /**
-     * 校验 Access Token 是否有效
-     */
     public boolean validateAccessToken(String token) {
         try {
             Claims claims = parseToken(token);
@@ -267,9 +258,6 @@ public class JwtTokenProvider {
         }
     }
 
-    /**
-     * 校验 Refresh Token 是否基本有效
-     */
     public boolean validateRefreshToken(String token) {
         try {
             Claims claims = parseToken(token);
@@ -283,13 +271,25 @@ public class JwtTokenProvider {
     public Map<String, Object> getJwkSet() {
         RSAPublicKey publicKey = (RSAPublicKey) keyPair.getPublic();
 
-        RSAKey key = new RSAKey.Builder(publicKey)
-                .keyUse(KeyUse.SIGNATURE)
-                .algorithm(JWSAlgorithm.RS256)
-                .keyID(KEY_ID)
-                .build();
+        Map<String, Object> key = new HashMap<>();
+        key.put("kty", "RSA");
+        key.put("use", "sig");
+        key.put("alg", "RS256");
+        key.put("kid", KEY_ID);
+        key.put("n", toBase64UrlUnsigned(publicKey.getModulus().toByteArray()));
+        key.put("e", toBase64UrlUnsigned(publicKey.getPublicExponent().toByteArray()));
 
-        return new JWKSet(key).toJSONObject();
+        return Map.of("keys", List.of(key));
+    }
+
+    private String toBase64UrlUnsigned(byte[] bytes) {
+        int start = 0;
+        while (start < bytes.length - 1 && bytes[start] == 0) {
+            start++;
+        }
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(
+                start == 0 ? bytes : java.util.Arrays.copyOfRange(bytes, start, bytes.length)
+        );
     }
 
     private record JwtMaterial(String publicKey, String privateKey, String keyId) {
