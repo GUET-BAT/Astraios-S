@@ -12,30 +12,47 @@ type RegisterRequest {
 }
 
 type RegisterResponse {
-	Code int32 `json:"code"`
+	Code int32  `json:"code"`
+	Msg  string `json:"result"`
 }
 
-type UserDataRequest {
-	Userid string `path:"userid"`
-}
-
-type UserDataResponse {
-	UserId          string `json:"userId"`
-	Nickname        string `json:"nickname"`
-	Avatar          string `json:"avatar"`
-	Gender          int32  `json:"gender"`
-	Birthday        string `json:"birthday"`
-	Bio             string `json:"bio"`
-	BackgroundImage string `json:"backgroundImage"`
-	Country         string `json:"country"`
-	Province        string `json:"province"`
-	City            string `json:"city"`
-	School          string `json:"school"`
-	Major           string `json:"major"`
-	GraduationYear  int32  `json:"graduationYear"`
-	CreatedAt       string `json:"createdAt"`
-	UpdatedAt       string `json:"updatedAt"`
-}
+type (
+	UserInfo {
+		Userid          string `json:"user_id"`
+		Nickname        string `json:"nickname"`
+		Avatar          string `json:"avatar"`
+		Gender          int32  `json:"gender"`
+		Birthday        string `json:"birthday"`
+		Bio             string `json:"bio"`
+		BackgroundImage string `json:"backgroundImage"`
+		Country         string `json:"country"`
+		Province        string `json:"province"`
+		City            string `json:"city"`
+		School          string `json:"school"`
+		Major           string `json:"major"`
+		GraduationYear  int32  `json:"graduation_year"`
+		CreatedAt       string `json:"created_at"`
+		UpdatedAt       string `json:"updated_at"`
+	}
+	UserDataRequest {
+		Userid   string   `json:"user_id"`
+		UserInfo UserInfo `json:"user_info,optional"`
+	}
+	UserDataResponseData {
+		UserInfo UserInfo `json:"user_info"`
+	}
+	UserDataResponse {
+		Code int32                `json:"code"`
+		Msg  string               `json:"result"`
+		Data UserDataResponseData `json:"data,optional"`
+	}
+	AvatarUrlRequest {
+		Userid string `json:"user_id"`
+	}
+	AvatarUrlResponse {
+		AvatarUrl string `json:"avatar_url"`
+	}
+)
 
 @server (
 	group: user
@@ -52,5 +69,14 @@ service gateway {
 service gateway {
 	@handler GetUserData
 	get /api/v1/users/:userid (UserDataRequest) returns (UserDataResponse)
+
+	@handler SetUserData
+	post /api/v1/users/:userid (UserDataRequest) returns (UserDataResponse)
+
+	@handler GetAvatar
+	get /api/v1/users/presign_url (AvatarUrlRequest) returns (AvatarUrlResponse)
+
+	@handler SetAvatar
+	post /api/v1/users/presign_url (AvatarUrlRequest) returns (AvatarUrlResponse)
 }
 

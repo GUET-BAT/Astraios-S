@@ -32,6 +32,21 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 					Path:    "/api/v1/users/:userid",
 					Handler: user.GetUserDataHandler(serverCtx),
 				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/api/v1/users/:userid",
+					Handler: user.SetUserDataHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/users/presign_url",
+					Handler: user.GetAvatarHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/api/v1/users/presign_url",
+					Handler: user.SetAvatarHandler(serverCtx),
+				},
 			}...,
 		),
 	)

@@ -17,21 +17,21 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type GetUserDataLogic struct {
+type GetAvatarLogic struct {
 	logx.Logger
 	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewGetUserDataLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetUserDataLogic {
-	return &GetUserDataLogic{
+func NewGetAvatarLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetAvatarLogic {
+	return &GetAvatarLogic{
 		Logger: logx.WithContext(ctx),
 		ctx:    ctx,
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *GetUserDataLogic) GetUserData(req *types.UserDataRequest) (resp *types.UserDataResponse, err error) {
+func (l *GetAvatarLogic) GetAvatar(req *types.AvatarUrlRequest) (resp *types.AvatarUrlResponse, err error) {
 	// Step 1: Validate request parameters.
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "request is required")
@@ -47,45 +47,26 @@ func (l *GetUserDataLogic) GetUserData(req *types.UserDataRequest) (resp *types.
 		return nil, status.Error(codes.Unauthenticated, "unauthorized")
 	}
 	if subject != userID {
-		l.Infof("get user data: subject mismatch, subject=%s requested=%s", subject, userID)
+		l.Infof("get avatar: subject mismatch, subject=%s requested=%s", subject, userID)
 		return nil, status.Error(codes.PermissionDenied, "forbidden")
 	}
 
 	// Step 3: Build RPC request to user-service.
-	rpcReq := &userpb.UserDataRequest{
+	rpcReq := &userpb.UserAvatarRequest{
 		UserId: userID,
 	}
 
-	// Step 4: Call user-service GetUserData with timeout.
+	// Step 4: Call user-service GetUserAvatar with timeout.
 	ctx, cancel := context.WithTimeout(l.ctx, rpcCallTimeout)
 	defer cancel()
-	rpcResp, err := l.svcCtx.UserService.GetUserData(ctx, rpcReq)
+	rpcResp, err := l.svcCtx.UserService.GetUserAvatar(ctx, rpcReq)
 	if err != nil {
-		l.Errorf("get user data: rpc call failed: %v", err)
+		l.Errorf("get avatar: rpc call failed: %v", err)
 		return nil, err
 	}
 
 	// Step 5: Map RPC response to HTTP response.
-	return &types.UserDataResponse{
-		Code: 0,
-		Data: types.UserDataResponseData{
-			UserInfo: types.UserInfo{
-				Userid:          rpcResp.UserId,
-				Nickname:        rpcResp.Nickname,
-				Avatar:          rpcResp.Avatar,
-				Gender:          rpcResp.Gender,
-				Birthday:        rpcResp.Birthday,
-				Bio:             rpcResp.Bio,
-				BackgroundImage: rpcResp.BackgroundImage,
-				Country:         rpcResp.Country,
-				Province:        rpcResp.Province,
-				City:            rpcResp.City,
-				School:          rpcResp.School,
-				Major:           rpcResp.Major,
-				GraduationYear:  rpcResp.GraduationYear,
-				CreatedAt:       rpcResp.CreatedAt,
-				UpdatedAt:       rpcResp.UpdatedAt,
-			},
-		},
+	return &types.AvatarUrlResponse{
+		AvatarUrl: rpcResp.AvatarUrl,
 	}, nil
 }

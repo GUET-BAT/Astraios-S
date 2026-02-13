@@ -14,6 +14,9 @@ service UserService {
   rpc Register(RegisterRequest) returns (RegisterResponse);
   // GetUserData retrieves user profile data.
   rpc GetUserData(UserDataRequest) returns (UserDataResponse);
+  rpc SetUserData(UserDataRequest) returns (UserDataResponse);
+  rpc GetUserAvatar(UserAvatarRequest) returns (UserAvatarResponse);
+  rpc SetUserAvatar(UserAvatarRequest) returns (UserAvatarResponse);
 }
 
 message VerifyPasswordRequest {
@@ -40,6 +43,22 @@ message RegisterResponse {
 
 message UserDataRequest {
   string user_id = 1;
+  UserInfo user_info = 2;
+}
+
+message UserInfo {
+  string nickname = 1;
+  string avatar = 2;
+  int32 gender = 3;
+  string birthday = 4;
+  string bio = 5;
+  string background_image = 6;
+  string country = 7;
+  string province = 8;
+  string city = 9;
+  string school = 10;
+  string major = 11;
+  int32 graduation_year = 12;
 }
 
 message UserDataResponse {
@@ -58,4 +77,12 @@ message UserDataResponse {
   int32 graduation_year = 13;
   string created_at = 14;
   string updated_at = 15;
+}
+
+message UserAvatarRequest {
+  string user_id = 1;
+}
+
+message UserAvatarResponse {
+  string avatar_url = 1;
 }

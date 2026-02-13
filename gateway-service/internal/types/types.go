@@ -3,6 +3,14 @@
 
 package types
 
+type AvatarUrlRequest struct {
+	Userid string `json:"user_id"`
+}
+
+type AvatarUrlResponse struct {
+	AvatarUrl string `json:"avatar_url"`
+}
+
 type RegisterRequest struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
@@ -10,15 +18,27 @@ type RegisterRequest struct {
 }
 
 type RegisterResponse struct {
-	Code int32 `json:"code"`
+	Code int32  `json:"code"`
+	Msg  string `json:"result"`
 }
 
 type UserDataRequest struct {
-	Userid string `path:"userid"`
+	Userid   string   `json:"user_id"`
+	UserInfo UserInfo `json:"user_info,optional"`
 }
 
 type UserDataResponse struct {
-	UserId          string `json:"userId"`
+	Code int32                `json:"code"`
+	Msg  string               `json:"result"`
+	Data UserDataResponseData `json:"data,optional"`
+}
+
+type UserDataResponseData struct {
+	UserInfo UserInfo `json:"user_info"`
+}
+
+type UserInfo struct {
+	Userid          string `json:"user_id"`
 	Nickname        string `json:"nickname"`
 	Avatar          string `json:"avatar"`
 	Gender          int32  `json:"gender"`
@@ -30,7 +50,7 @@ type UserDataResponse struct {
 	City            string `json:"city"`
 	School          string `json:"school"`
 	Major           string `json:"major"`
-	GraduationYear  int32  `json:"graduationYear"`
-	CreatedAt       string `json:"createdAt"`
-	UpdatedAt       string `json:"updatedAt"`
+	GraduationYear  int32  `json:"graduation_year"`
+	CreatedAt       string `json:"created_at"`
+	UpdatedAt       string `json:"updated_at"`
 }
