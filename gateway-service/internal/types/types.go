@@ -4,11 +4,36 @@
 package types
 
 type AvatarUrlRequest struct {
-	Userid string `json:"user_id"`
 }
 
 type AvatarUrlResponse struct {
 	AvatarUrl string `json:"avatar_url"`
+}
+
+type LoginRequest struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+	Type     int32  `json:"type,optional"`
+}
+
+type LoginResponse struct {
+	Code int32             `json:"code"`
+	Msg  string            `json:"message,optional"`
+	Data LoginResponseData `json:"data"`
+}
+
+type LoginResponseData struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+}
+
+type LogoutRequest struct {
+}
+
+type LogoutResponse struct {
+	Code int32  `json:"code"`
+	Msg  string `json:"message,optional"`
+	Data string `json:"data,optional"`
 }
 
 type RegisterRequest struct {
@@ -19,17 +44,17 @@ type RegisterRequest struct {
 
 type RegisterResponse struct {
 	Code int32  `json:"code"`
-	Msg  string `json:"result"`
+	Msg  string `json:"message,optional"`
+	Data string `json:"data,optional"`
 }
 
 type UserDataRequest struct {
-	Userid   string   `json:"user_id"`
 	UserInfo UserInfo `json:"user_info,optional"`
 }
 
 type UserDataResponse struct {
 	Code int32                `json:"code"`
-	Msg  string               `json:"result"`
+	Msg  string               `json:"message"`
 	Data UserDataResponseData `json:"data,optional"`
 }
 
@@ -38,7 +63,7 @@ type UserDataResponseData struct {
 }
 
 type UserInfo struct {
-	Userid          string `json:"user_id"`
+	Userid          string `json:"user_id,optional"`
 	Nickname        string `json:"nickname"`
 	Avatar          string `json:"avatar"`
 	Gender          int32  `json:"gender"`

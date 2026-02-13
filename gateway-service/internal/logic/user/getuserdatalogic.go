@@ -36,19 +36,15 @@ func (l *GetUserDataLogic) GetUserData(req *types.UserDataRequest) (resp *types.
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "request is required")
 	}
-	userID := strings.TrimSpace(req.Userid)
-	if userID == "" {
-		return nil, status.Error(codes.InvalidArgument, "userid is required")
-	}
 
-	// Step 2: Enforce that token subject matches requested user id.
+	// Step 2: Read user id from token subject.
 	subject, ok := middleware.SubjectFromContext(l.ctx)
 	if !ok {
 		return nil, status.Error(codes.Unauthenticated, "unauthorized")
 	}
-	if subject != userID {
-		l.Infof("get user data: subject mismatch, subject=%s requested=%s", subject, userID)
-		return nil, status.Error(codes.PermissionDenied, "forbidden")
+	userID := strings.TrimSpace(subject)
+	if userID == "" {
+		return nil, status.Error(codes.Unauthenticated, "unauthorized")
 	}
 
 	// Step 3: Build RPC request to user-service.

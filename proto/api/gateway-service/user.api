@@ -5,20 +5,44 @@ info (
 	version: "v1"
 )
 
-type RegisterRequest {
-	Username string `json:"username"`
-	Password string `json:"password"`
-	Type     int32  `json:"type,optional"`
-}
+// register and login
+type (
+	RegisterRequest {
+		Username string `json:"username"`
+		Password string `json:"password"`
+		Type     int32  `json:"type,optional"`
+	}
+	RegisterResponse {
+		Code int32  `json:"code"`
+		Msg  string `json:"message,optional"`
+		Data string `json:"data,optional"`
+	}
+	LoginRequest {
+		Username string `json:"username"`
+		Password string `json:"password"`
+		Type     int32  `json:"type,optional"`
+	}
+	LoginResponseData {
+		AccessToken  string `json:"access_token"`
+		RefreshToken string `json:"refresh_token"`
+	}
+	LoginResponse {
+		Code int32             `json:"code"`
+		Msg  string            `json:"message,optional"`
+		Data LoginResponseData `json:"data"`
+	}
+	LogoutRequest  {}
+	LogoutResponse {
+		Code int32  `json:"code"`
+		Msg  string `json:"message,optional"`
+		Data string `json:"data,optional"`
+	}
+)
 
-type RegisterResponse {
-	Code int32  `json:"code"`
-	Msg  string `json:"result"`
-}
-
+// user_info
 type (
 	UserInfo {
-		Userid          string `json:"user_id"`
+		Userid          string `json:"user_id,optional"`
 		Nickname        string `json:"nickname"`
 		Avatar          string `json:"avatar"`
 		Gender          int32  `json:"gender"`
@@ -35,7 +59,6 @@ type (
 		UpdatedAt       string `json:"updated_at"`
 	}
 	UserDataRequest {
-		Userid   string   `json:"user_id"`
 		UserInfo UserInfo `json:"user_info,optional"`
 	}
 	UserDataResponseData {
@@ -43,12 +66,10 @@ type (
 	}
 	UserDataResponse {
 		Code int32                `json:"code"`
-		Msg  string               `json:"result"`
+		Msg  string               `json:"message"`
 		Data UserDataResponseData `json:"data,optional"`
 	}
-	AvatarUrlRequest {
-		Userid string `json:"user_id"`
-	}
+	AvatarUrlRequest  {}
 	AvatarUrlResponse {
 		AvatarUrl string `json:"avatar_url"`
 	}
@@ -60,6 +81,9 @@ type (
 service gateway {
 	@handler Register
 	post /api/v1/users/register (RegisterRequest) returns (RegisterResponse)
+
+	@handler Login
+	post /api/v1/users/login (LoginRequest) returns (LoginResponse)
 }
 
 @server (
@@ -67,16 +91,19 @@ service gateway {
 	middleware: JwtAuth
 )
 service gateway {
+	@handler Logout
+	post /api/v1/users/logout (LogoutRequest) returns (LogoutResponse)
+
 	@handler GetUserData
-	get /api/v1/users/:userid (UserDataRequest) returns (UserDataResponse)
+	get /api/v1/users/user-data (UserDataRequest) returns (UserDataResponse)
 
 	@handler SetUserData
-	post /api/v1/users/:userid (UserDataRequest) returns (UserDataResponse)
+	post /api/v1/users/user-data (UserDataRequest) returns (UserDataResponse)
 
 	@handler GetAvatar
-	get /api/v1/users/presign_url (AvatarUrlRequest) returns (AvatarUrlResponse)
+	get /api/v1/users/presign-url (AvatarUrlRequest) returns (AvatarUrlResponse)
 
 	@handler SetAvatar
-	post /api/v1/users/presign_url (AvatarUrlRequest) returns (AvatarUrlResponse)
+	post /api/v1/users/presign-url (AvatarUrlRequest) returns (AvatarUrlResponse)
 }
 

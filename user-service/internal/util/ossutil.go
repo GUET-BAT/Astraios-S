@@ -66,7 +66,7 @@ func NewOSSClient(cfg OSSConfig) (*OSSClient, error) {
 		WithRegion(region).
 		WithConnectTimeout(10 * time.Second).
 		WithReadWriteTimeout(30 * time.Second).
-		WithMaxRetries(3)
+		WithRetryMaxAttempts(3)
 	if endpoint != "" {
 		ossCfg = ossCfg.WithEndpoint(endpoint)
 	}

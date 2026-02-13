@@ -17,6 +17,11 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 		[]rest.Route{
 			{
 				Method:  http.MethodPost,
+				Path:    "/api/v1/users/login",
+				Handler: user.LoginHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
 				Path:    "/api/v1/users/register",
 				Handler: user.RegisterHandler(serverCtx),
 			},
@@ -28,24 +33,29 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 			[]rest.Middleware{serverCtx.JwtAuth},
 			[]rest.Route{
 				{
-					Method:  http.MethodGet,
-					Path:    "/api/v1/users/:userid",
-					Handler: user.GetUserDataHandler(serverCtx),
-				},
-				{
 					Method:  http.MethodPost,
-					Path:    "/api/v1/users/:userid",
-					Handler: user.SetUserDataHandler(serverCtx),
+					Path:    "/api/v1/users/logout",
+					Handler: user.LogoutHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodGet,
-					Path:    "/api/v1/users/presign_url",
+					Path:    "/api/v1/users/presign-url",
 					Handler: user.GetAvatarHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPost,
-					Path:    "/api/v1/users/presign_url",
+					Path:    "/api/v1/users/presign-url",
 					Handler: user.SetAvatarHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/api/v1/users/user-data",
+					Handler: user.GetUserDataHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/api/v1/users/user-data",
+					Handler: user.SetUserDataHandler(serverCtx),
 				},
 			}...,
 		),

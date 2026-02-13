@@ -9,6 +9,14 @@ data:
     Name: {{ .Values.config.name }}
     Host: {{ .Values.config.host }}
     Port: {{ .Values.config.port }}
+    ConfigDataId: {{ .Values.config.configDataId }}
+    CommonService:
+      Endpoints:
+{{ toYaml .Values.config.commonService.endpoints | nindent 8 }}
+      Timeout: {{ .Values.config.commonService.timeout }}
+      NonBlock: {{ .Values.config.commonService.nonBlock }}
+      Middlewares:
+        Breaker: {{ .Values.config.commonService.middlewares.breaker }}
     UserService:
       Endpoints:
 {{ toYaml .Values.config.userService.endpoints | nindent 8 }}
