@@ -23,17 +23,35 @@ func NewUserServiceServer(svcCtx *svc.ServiceContext) *UserServiceServer {
 	}
 }
 
+// VerifyPassword validates user credentials.
 func (s *UserServiceServer) VerifyPassword(ctx context.Context, in *userpb.VerifyPasswordRequest) (*userpb.VerifyPasswordResponse, error) {
 	l := logic.NewVerifyPasswordLogic(ctx, s.svcCtx)
 	return l.VerifyPassword(in)
 }
 
+// Register creates a new user account.
 func (s *UserServiceServer) Register(ctx context.Context, in *userpb.RegisterRequest) (*userpb.RegisterResponse, error) {
 	l := logic.NewRegisterLogic(ctx, s.svcCtx)
 	return l.Register(in)
 }
 
+// GetUserData retrieves user profile data.
 func (s *UserServiceServer) GetUserData(ctx context.Context, in *userpb.UserDataRequest) (*userpb.UserDataResponse, error) {
 	l := logic.NewGetUserDataLogic(ctx, s.svcCtx)
 	return l.GetUserData(in)
+}
+
+func (s *UserServiceServer) SetUserData(ctx context.Context, in *userpb.UserDataRequest) (*userpb.UserDataResponse, error) {
+	l := logic.NewSetUserDataLogic(ctx, s.svcCtx)
+	return l.SetUserData(in)
+}
+
+func (s *UserServiceServer) GetUserAvatar(ctx context.Context, in *userpb.UserAvatarRequest) (*userpb.UserAvatarResponse, error) {
+	l := logic.NewGetUserAvatarLogic(ctx, s.svcCtx)
+	return l.GetUserAvatar(in)
+}
+
+func (s *UserServiceServer) SetUserAvatar(ctx context.Context, in *userpb.UserAvatarRequest) (*userpb.UserAvatarResponse, error) {
+	l := logic.NewSetUserAvatarLogic(ctx, s.svcCtx)
+	return l.SetUserAvatar(in)
 }

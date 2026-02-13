@@ -1,6 +1,14 @@
 Name: gateway
 Host: 0.0.0.0
 Port: 8888
+ConfigDataId: gateway-service.core.config
+CommonService:
+  Endpoints:
+    - common-service:8080
+  Timeout: 2000
+  NonBlock: true
+  Middlewares:
+    Breaker: true
 UserService:
   Endpoints:
     - user-service:8080

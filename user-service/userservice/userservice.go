@@ -16,15 +16,24 @@ import (
 type (
 	RegisterRequest        = userpb.RegisterRequest
 	RegisterResponse       = userpb.RegisterResponse
+	UserAvatarRequest      = userpb.UserAvatarRequest
+	UserAvatarResponse     = userpb.UserAvatarResponse
 	UserDataRequest        = userpb.UserDataRequest
 	UserDataResponse       = userpb.UserDataResponse
+	UserInfo               = userpb.UserInfo
 	VerifyPasswordRequest  = userpb.VerifyPasswordRequest
 	VerifyPasswordResponse = userpb.VerifyPasswordResponse
 
 	UserService interface {
+		// VerifyPassword validates user credentials.
 		VerifyPassword(ctx context.Context, in *VerifyPasswordRequest, opts ...grpc.CallOption) (*VerifyPasswordResponse, error)
+		// Register creates a new user account.
 		Register(ctx context.Context, in *RegisterRequest, opts ...grpc.CallOption) (*RegisterResponse, error)
+		// GetUserData retrieves user profile data.
 		GetUserData(ctx context.Context, in *UserDataRequest, opts ...grpc.CallOption) (*UserDataResponse, error)
+		SetUserData(ctx context.Context, in *UserDataRequest, opts ...grpc.CallOption) (*UserDataResponse, error)
+		GetUserAvatar(ctx context.Context, in *UserAvatarRequest, opts ...grpc.CallOption) (*UserAvatarResponse, error)
+		SetUserAvatar(ctx context.Context, in *UserAvatarRequest, opts ...grpc.CallOption) (*UserAvatarResponse, error)
 	}
 
 	defaultUserService struct {
@@ -38,17 +47,35 @@ func NewUserService(cli zrpc.Client) UserService {
 	}
 }
 
+// VerifyPassword validates user credentials.
 func (m *defaultUserService) VerifyPassword(ctx context.Context, in *VerifyPasswordRequest, opts ...grpc.CallOption) (*VerifyPasswordResponse, error) {
 	client := userpb.NewUserServiceClient(m.cli.Conn())
 	return client.VerifyPassword(ctx, in, opts...)
 }
 
+// Register creates a new user account.
 func (m *defaultUserService) Register(ctx context.Context, in *RegisterRequest, opts ...grpc.CallOption) (*RegisterResponse, error) {
 	client := userpb.NewUserServiceClient(m.cli.Conn())
 	return client.Register(ctx, in, opts...)
 }
 
+// GetUserData retrieves user profile data.
 func (m *defaultUserService) GetUserData(ctx context.Context, in *UserDataRequest, opts ...grpc.CallOption) (*UserDataResponse, error) {
 	client := userpb.NewUserServiceClient(m.cli.Conn())
 	return client.GetUserData(ctx, in, opts...)
+}
+
+func (m *defaultUserService) SetUserData(ctx context.Context, in *UserDataRequest, opts ...grpc.CallOption) (*UserDataResponse, error) {
+	client := userpb.NewUserServiceClient(m.cli.Conn())
+	return client.SetUserData(ctx, in, opts...)
+}
+
+func (m *defaultUserService) GetUserAvatar(ctx context.Context, in *UserAvatarRequest, opts ...grpc.CallOption) (*UserAvatarResponse, error) {
+	client := userpb.NewUserServiceClient(m.cli.Conn())
+	return client.GetUserAvatar(ctx, in, opts...)
+}
+
+func (m *defaultUserService) SetUserAvatar(ctx context.Context, in *UserAvatarRequest, opts ...grpc.CallOption) (*UserAvatarResponse, error) {
+	client := userpb.NewUserServiceClient(m.cli.Conn())
+	return client.SetUserAvatar(ctx, in, opts...)
 }

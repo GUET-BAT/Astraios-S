@@ -24,7 +24,7 @@ const (
 type VerifyPasswordRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Username      string                 `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
-	Password      string                 `protobuf:"bytes,2,opt,name=password,proto3" json:"password,omitempty"` // 明文密码
+	Password      string                 `protobuf:"bytes,2,opt,name=password,proto3" json:"password,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -75,10 +75,10 @@ func (x *VerifyPasswordRequest) GetPassword() string {
 
 type VerifyPasswordResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Code          int32                  `protobuf:"varint,1,opt,name=code,proto3" json:"code,omitempty"`      // 成功返回0，失败返回1，内部错误返回2
-	Message       string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"` // 返回错误信息
-	UserId        string                 `protobuf:"bytes,3,opt,name=userId,proto3" json:"userId,omitempty"`   // 用户ID
-	Roles         []string               `protobuf:"bytes,4,rep,name=roles,proto3" json:"roles,omitempty"`     // 用户角色列表
+	Code          int32                  `protobuf:"varint,1,opt,name=code,proto3" json:"code,omitempty"`
+	Message       string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	UserId        string                 `protobuf:"bytes,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Roles         []string               `protobuf:"bytes,4,rep,name=roles,proto3" json:"roles,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -247,7 +247,8 @@ func (x *RegisterResponse) GetCode() int32 {
 
 type UserDataRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Userid        string                 `protobuf:"bytes,1,opt,name=userid,proto3" json:"userid,omitempty"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	UserInfo      *UserInfo              `protobuf:"bytes,2,opt,name=user_info,json=userInfo,proto3" json:"user_info,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -282,37 +283,176 @@ func (*UserDataRequest) Descriptor() ([]byte, []int) {
 	return file_user_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *UserDataRequest) GetUserid() string {
+func (x *UserDataRequest) GetUserId() string {
 	if x != nil {
-		return x.Userid
+		return x.UserId
 	}
 	return ""
 }
 
+func (x *UserDataRequest) GetUserInfo() *UserInfo {
+	if x != nil {
+		return x.UserInfo
+	}
+	return nil
+}
+
+type UserInfo struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	Nickname        string                 `protobuf:"bytes,1,opt,name=nickname,proto3" json:"nickname,omitempty"`
+	Avatar          string                 `protobuf:"bytes,2,opt,name=avatar,proto3" json:"avatar,omitempty"`
+	Gender          int32                  `protobuf:"varint,3,opt,name=gender,proto3" json:"gender,omitempty"`
+	Birthday        string                 `protobuf:"bytes,4,opt,name=birthday,proto3" json:"birthday,omitempty"`
+	Bio             string                 `protobuf:"bytes,5,opt,name=bio,proto3" json:"bio,omitempty"`
+	BackgroundImage string                 `protobuf:"bytes,6,opt,name=background_image,json=backgroundImage,proto3" json:"background_image,omitempty"`
+	Country         string                 `protobuf:"bytes,7,opt,name=country,proto3" json:"country,omitempty"`
+	Province        string                 `protobuf:"bytes,8,opt,name=province,proto3" json:"province,omitempty"`
+	City            string                 `protobuf:"bytes,9,opt,name=city,proto3" json:"city,omitempty"`
+	School          string                 `protobuf:"bytes,10,opt,name=school,proto3" json:"school,omitempty"`
+	Major           string                 `protobuf:"bytes,11,opt,name=major,proto3" json:"major,omitempty"`
+	GraduationYear  int32                  `protobuf:"varint,12,opt,name=graduation_year,json=graduationYear,proto3" json:"graduation_year,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *UserInfo) Reset() {
+	*x = UserInfo{}
+	mi := &file_user_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UserInfo) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UserInfo) ProtoMessage() {}
+
+func (x *UserInfo) ProtoReflect() protoreflect.Message {
+	mi := &file_user_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UserInfo.ProtoReflect.Descriptor instead.
+func (*UserInfo) Descriptor() ([]byte, []int) {
+	return file_user_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *UserInfo) GetNickname() string {
+	if x != nil {
+		return x.Nickname
+	}
+	return ""
+}
+
+func (x *UserInfo) GetAvatar() string {
+	if x != nil {
+		return x.Avatar
+	}
+	return ""
+}
+
+func (x *UserInfo) GetGender() int32 {
+	if x != nil {
+		return x.Gender
+	}
+	return 0
+}
+
+func (x *UserInfo) GetBirthday() string {
+	if x != nil {
+		return x.Birthday
+	}
+	return ""
+}
+
+func (x *UserInfo) GetBio() string {
+	if x != nil {
+		return x.Bio
+	}
+	return ""
+}
+
+func (x *UserInfo) GetBackgroundImage() string {
+	if x != nil {
+		return x.BackgroundImage
+	}
+	return ""
+}
+
+func (x *UserInfo) GetCountry() string {
+	if x != nil {
+		return x.Country
+	}
+	return ""
+}
+
+func (x *UserInfo) GetProvince() string {
+	if x != nil {
+		return x.Province
+	}
+	return ""
+}
+
+func (x *UserInfo) GetCity() string {
+	if x != nil {
+		return x.City
+	}
+	return ""
+}
+
+func (x *UserInfo) GetSchool() string {
+	if x != nil {
+		return x.School
+	}
+	return ""
+}
+
+func (x *UserInfo) GetMajor() string {
+	if x != nil {
+		return x.Major
+	}
+	return ""
+}
+
+func (x *UserInfo) GetGraduationYear() int32 {
+	if x != nil {
+		return x.GraduationYear
+	}
+	return 0
+}
+
 type UserDataResponse struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
-	UserId          string                 `protobuf:"bytes,1,opt,name=userId,proto3" json:"userId,omitempty"`
+	UserId          string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	Nickname        string                 `protobuf:"bytes,2,opt,name=nickname,proto3" json:"nickname,omitempty"`
 	Avatar          string                 `protobuf:"bytes,3,opt,name=avatar,proto3" json:"avatar,omitempty"`
 	Gender          int32                  `protobuf:"varint,4,opt,name=gender,proto3" json:"gender,omitempty"`
 	Birthday        string                 `protobuf:"bytes,5,opt,name=birthday,proto3" json:"birthday,omitempty"`
 	Bio             string                 `protobuf:"bytes,6,opt,name=bio,proto3" json:"bio,omitempty"`
-	BackgroundImage string                 `protobuf:"bytes,7,opt,name=backgroundImage,proto3" json:"backgroundImage,omitempty"`
+	BackgroundImage string                 `protobuf:"bytes,7,opt,name=background_image,json=backgroundImage,proto3" json:"background_image,omitempty"`
 	Country         string                 `protobuf:"bytes,8,opt,name=country,proto3" json:"country,omitempty"`
 	Province        string                 `protobuf:"bytes,9,opt,name=province,proto3" json:"province,omitempty"`
 	City            string                 `protobuf:"bytes,10,opt,name=city,proto3" json:"city,omitempty"`
 	School          string                 `protobuf:"bytes,11,opt,name=school,proto3" json:"school,omitempty"`
 	Major           string                 `protobuf:"bytes,12,opt,name=major,proto3" json:"major,omitempty"`
-	GraduationYear  int32                  `protobuf:"varint,13,opt,name=graduationYear,proto3" json:"graduationYear,omitempty"`
-	CreatedAt       string                 `protobuf:"bytes,14,opt,name=createdAt,proto3" json:"createdAt,omitempty"`
-	UpdatedAt       string                 `protobuf:"bytes,15,opt,name=updatedAt,proto3" json:"updatedAt,omitempty"`
+	GraduationYear  int32                  `protobuf:"varint,13,opt,name=graduation_year,json=graduationYear,proto3" json:"graduation_year,omitempty"`
+	CreatedAt       string                 `protobuf:"bytes,14,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt       string                 `protobuf:"bytes,15,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
 
 func (x *UserDataResponse) Reset() {
 	*x = UserDataResponse{}
-	mi := &file_user_proto_msgTypes[5]
+	mi := &file_user_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -324,7 +464,7 @@ func (x *UserDataResponse) String() string {
 func (*UserDataResponse) ProtoMessage() {}
 
 func (x *UserDataResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_user_proto_msgTypes[5]
+	mi := &file_user_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -337,7 +477,7 @@ func (x *UserDataResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserDataResponse.ProtoReflect.Descriptor instead.
 func (*UserDataResponse) Descriptor() ([]byte, []int) {
-	return file_user_proto_rawDescGZIP(), []int{5}
+	return file_user_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *UserDataResponse) GetUserId() string {
@@ -445,6 +585,94 @@ func (x *UserDataResponse) GetUpdatedAt() string {
 	return ""
 }
 
+type UserAvatarRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UserAvatarRequest) Reset() {
+	*x = UserAvatarRequest{}
+	mi := &file_user_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UserAvatarRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UserAvatarRequest) ProtoMessage() {}
+
+func (x *UserAvatarRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_user_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UserAvatarRequest.ProtoReflect.Descriptor instead.
+func (*UserAvatarRequest) Descriptor() ([]byte, []int) {
+	return file_user_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *UserAvatarRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+type UserAvatarResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AvatarUrl     string                 `protobuf:"bytes,1,opt,name=avatar_url,json=avatarUrl,proto3" json:"avatar_url,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UserAvatarResponse) Reset() {
+	*x = UserAvatarResponse{}
+	mi := &file_user_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UserAvatarResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UserAvatarResponse) ProtoMessage() {}
+
+func (x *UserAvatarResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_user_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UserAvatarResponse.ProtoReflect.Descriptor instead.
+func (*UserAvatarResponse) Descriptor() ([]byte, []int) {
+	return file_user_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *UserAvatarResponse) GetAvatarUrl() string {
+	if x != nil {
+		return x.AvatarUrl
+	}
+	return ""
+}
+
 var File_user_proto protoreflect.FileDescriptor
 
 const file_user_proto_rawDesc = "" +
@@ -453,41 +681,66 @@ const file_user_proto_rawDesc = "" +
 	"user.proto\x12\x04user\"O\n" +
 	"\x15VerifyPasswordRequest\x12\x1a\n" +
 	"\busername\x18\x01 \x01(\tR\busername\x12\x1a\n" +
-	"\bpassword\x18\x02 \x01(\tR\bpassword\"t\n" +
+	"\bpassword\x18\x02 \x01(\tR\bpassword\"u\n" +
 	"\x16VerifyPasswordResponse\x12\x12\n" +
 	"\x04code\x18\x01 \x01(\x05R\x04code\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\tR\amessage\x12\x16\n" +
-	"\x06userId\x18\x03 \x01(\tR\x06userId\x12\x14\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\x12\x17\n" +
+	"\auser_id\x18\x03 \x01(\tR\x06userId\x12\x14\n" +
 	"\x05roles\x18\x04 \x03(\tR\x05roles\"]\n" +
 	"\x0fRegisterRequest\x12\x1a\n" +
 	"\busername\x18\x01 \x01(\tR\busername\x12\x1a\n" +
 	"\bpassword\x18\x02 \x01(\tR\bpassword\x12\x12\n" +
 	"\x04type\x18\x03 \x01(\x05R\x04type\"&\n" +
 	"\x10RegisterResponse\x12\x12\n" +
-	"\x04code\x18\x01 \x01(\x05R\x04code\")\n" +
-	"\x0fUserDataRequest\x12\x16\n" +
-	"\x06userid\x18\x01 \x01(\tR\x06userid\"\xaa\x03\n" +
-	"\x10UserDataResponse\x12\x16\n" +
-	"\x06userId\x18\x01 \x01(\tR\x06userId\x12\x1a\n" +
+	"\x04code\x18\x01 \x01(\x05R\x04code\"W\n" +
+	"\x0fUserDataRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\x12+\n" +
+	"\tuser_info\x18\x02 \x01(\v2\x0e.user.UserInfoR\buserInfo\"\xd0\x02\n" +
+	"\bUserInfo\x12\x1a\n" +
+	"\bnickname\x18\x01 \x01(\tR\bnickname\x12\x16\n" +
+	"\x06avatar\x18\x02 \x01(\tR\x06avatar\x12\x16\n" +
+	"\x06gender\x18\x03 \x01(\x05R\x06gender\x12\x1a\n" +
+	"\bbirthday\x18\x04 \x01(\tR\bbirthday\x12\x10\n" +
+	"\x03bio\x18\x05 \x01(\tR\x03bio\x12)\n" +
+	"\x10background_image\x18\x06 \x01(\tR\x0fbackgroundImage\x12\x18\n" +
+	"\acountry\x18\a \x01(\tR\acountry\x12\x1a\n" +
+	"\bprovince\x18\b \x01(\tR\bprovince\x12\x12\n" +
+	"\x04city\x18\t \x01(\tR\x04city\x12\x16\n" +
+	"\x06school\x18\n" +
+	" \x01(\tR\x06school\x12\x14\n" +
+	"\x05major\x18\v \x01(\tR\x05major\x12'\n" +
+	"\x0fgraduation_year\x18\f \x01(\x05R\x0egraduationYear\"\xaf\x03\n" +
+	"\x10UserDataResponse\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x1a\n" +
 	"\bnickname\x18\x02 \x01(\tR\bnickname\x12\x16\n" +
 	"\x06avatar\x18\x03 \x01(\tR\x06avatar\x12\x16\n" +
 	"\x06gender\x18\x04 \x01(\x05R\x06gender\x12\x1a\n" +
 	"\bbirthday\x18\x05 \x01(\tR\bbirthday\x12\x10\n" +
-	"\x03bio\x18\x06 \x01(\tR\x03bio\x12(\n" +
-	"\x0fbackgroundImage\x18\a \x01(\tR\x0fbackgroundImage\x12\x18\n" +
+	"\x03bio\x18\x06 \x01(\tR\x03bio\x12)\n" +
+	"\x10background_image\x18\a \x01(\tR\x0fbackgroundImage\x12\x18\n" +
 	"\acountry\x18\b \x01(\tR\acountry\x12\x1a\n" +
 	"\bprovince\x18\t \x01(\tR\bprovince\x12\x12\n" +
 	"\x04city\x18\n" +
 	" \x01(\tR\x04city\x12\x16\n" +
 	"\x06school\x18\v \x01(\tR\x06school\x12\x14\n" +
-	"\x05major\x18\f \x01(\tR\x05major\x12&\n" +
-	"\x0egraduationYear\x18\r \x01(\x05R\x0egraduationYear\x12\x1c\n" +
-	"\tcreatedAt\x18\x0e \x01(\tR\tcreatedAt\x12\x1c\n" +
-	"\tupdatedAt\x18\x0f \x01(\tR\tupdatedAt2\xd3\x01\n" +
+	"\x05major\x18\f \x01(\tR\x05major\x12'\n" +
+	"\x0fgraduation_year\x18\r \x01(\x05R\x0egraduationYear\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\x0e \x01(\tR\tcreatedAt\x12\x1d\n" +
+	"\n" +
+	"updated_at\x18\x0f \x01(\tR\tupdatedAt\",\n" +
+	"\x11UserAvatarRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\"3\n" +
+	"\x12UserAvatarResponse\x12\x1d\n" +
+	"\n" +
+	"avatar_url\x18\x01 \x01(\tR\tavatarUrl2\x99\x03\n" +
 	"\vUserService\x12K\n" +
 	"\x0eVerifyPassword\x12\x1b.user.VerifyPasswordRequest\x1a\x1c.user.VerifyPasswordResponse\x129\n" +
 	"\bRegister\x12\x15.user.RegisterRequest\x1a\x16.user.RegisterResponse\x12<\n" +
-	"\vGetUserData\x12\x15.user.UserDataRequest\x1a\x16.user.UserDataResponseBQ\n" +
+	"\vGetUserData\x12\x15.user.UserDataRequest\x1a\x16.user.UserDataResponse\x12<\n" +
+	"\vSetUserData\x12\x15.user.UserDataRequest\x1a\x16.user.UserDataResponse\x12B\n" +
+	"\rGetUserAvatar\x12\x17.user.UserAvatarRequest\x1a\x18.user.UserAvatarResponse\x12B\n" +
+	"\rSetUserAvatar\x12\x17.user.UserAvatarRequest\x1a\x18.user.UserAvatarResponseBQ\n" +
 	"\x16com.astraios.grpc.userP\x01Z5github.com/GUET-BAT/Astraios-S/user-service/pb/userpbb\x06proto3"
 
 var (
@@ -502,27 +755,37 @@ func file_user_proto_rawDescGZIP() []byte {
 	return file_user_proto_rawDescData
 }
 
-var file_user_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_user_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_user_proto_goTypes = []any{
 	(*VerifyPasswordRequest)(nil),  // 0: user.VerifyPasswordRequest
 	(*VerifyPasswordResponse)(nil), // 1: user.VerifyPasswordResponse
 	(*RegisterRequest)(nil),        // 2: user.RegisterRequest
 	(*RegisterResponse)(nil),       // 3: user.RegisterResponse
 	(*UserDataRequest)(nil),        // 4: user.UserDataRequest
-	(*UserDataResponse)(nil),       // 5: user.UserDataResponse
+	(*UserInfo)(nil),               // 5: user.UserInfo
+	(*UserDataResponse)(nil),       // 6: user.UserDataResponse
+	(*UserAvatarRequest)(nil),      // 7: user.UserAvatarRequest
+	(*UserAvatarResponse)(nil),     // 8: user.UserAvatarResponse
 }
 var file_user_proto_depIdxs = []int32{
-	0, // 0: user.UserService.VerifyPassword:input_type -> user.VerifyPasswordRequest
-	2, // 1: user.UserService.Register:input_type -> user.RegisterRequest
-	4, // 2: user.UserService.GetUserData:input_type -> user.UserDataRequest
-	1, // 3: user.UserService.VerifyPassword:output_type -> user.VerifyPasswordResponse
-	3, // 4: user.UserService.Register:output_type -> user.RegisterResponse
-	5, // 5: user.UserService.GetUserData:output_type -> user.UserDataResponse
-	3, // [3:6] is the sub-list for method output_type
-	0, // [0:3] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	5, // 0: user.UserDataRequest.user_info:type_name -> user.UserInfo
+	0, // 1: user.UserService.VerifyPassword:input_type -> user.VerifyPasswordRequest
+	2, // 2: user.UserService.Register:input_type -> user.RegisterRequest
+	4, // 3: user.UserService.GetUserData:input_type -> user.UserDataRequest
+	4, // 4: user.UserService.SetUserData:input_type -> user.UserDataRequest
+	7, // 5: user.UserService.GetUserAvatar:input_type -> user.UserAvatarRequest
+	7, // 6: user.UserService.SetUserAvatar:input_type -> user.UserAvatarRequest
+	1, // 7: user.UserService.VerifyPassword:output_type -> user.VerifyPasswordResponse
+	3, // 8: user.UserService.Register:output_type -> user.RegisterResponse
+	6, // 9: user.UserService.GetUserData:output_type -> user.UserDataResponse
+	6, // 10: user.UserService.SetUserData:output_type -> user.UserDataResponse
+	8, // 11: user.UserService.GetUserAvatar:output_type -> user.UserAvatarResponse
+	8, // 12: user.UserService.SetUserAvatar:output_type -> user.UserAvatarResponse
+	7, // [7:13] is the sub-list for method output_type
+	1, // [1:7] is the sub-list for method input_type
+	1, // [1:1] is the sub-list for extension type_name
+	1, // [1:1] is the sub-list for extension extendee
+	0, // [0:1] is the sub-list for field type_name
 }
 
 func init() { file_user_proto_init() }
@@ -536,7 +799,7 @@ func file_user_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_user_proto_rawDesc), len(file_user_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   6,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

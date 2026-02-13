@@ -7,11 +7,11 @@ import (
 	"flag"
 	"fmt"
 
+	"github.com/GUET-BAT/Astraios-S/gateway-service/internal/conf"
 	"github.com/GUET-BAT/Astraios-S/gateway-service/internal/config"
 	"github.com/GUET-BAT/Astraios-S/gateway-service/internal/handler"
 	"github.com/GUET-BAT/Astraios-S/gateway-service/internal/svc"
 
-	"github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/rest"
 )
 

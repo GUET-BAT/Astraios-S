@@ -442,7 +442,12 @@ jobs:
 
           # Deploy with Helm (pull chart from Harbor OCI registry)
           helm registry login $HARBOR_URL -u "${{ secrets.HARBOR_CHART_USERNAME }}" -p "${{ secrets.HARBOR_CHART_PASSWORD }}"
-          helm upgrade --install $SERVICE_NAME oci://$HARBOR_URL/$HARBOR_CHART_PROJECT/$SERVICE_NAME \
+
+          # Always reinstall to ensure latest image is used
+          helm uninstall $SERVICE_NAME --namespace $NAMESPACE --wait || true
+          sleep 1
+
+          helm install $SERVICE_NAME oci://$HARBOR_URL/$HARBOR_CHART_PROJECT/$SERVICE_NAME \
             --namespace $NAMESPACE \
             ${CHART_VERSION:+--version $CHART_VERSION} \
             --set image.repository=$HARBOR_URL/$HARBOR_PROJECT/$SERVICE_NAME \

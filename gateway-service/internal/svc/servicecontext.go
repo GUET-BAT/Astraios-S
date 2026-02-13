@@ -9,6 +9,7 @@ import (
 	"github.com/GUET-BAT/Astraios-S/gateway-service/pb/authpb"
 	"github.com/GUET-BAT/Astraios-S/user-service/pb/userpb"
 
+	"github.com/zeromicro/go-zero/core/stores/redis"
 	"github.com/zeromicro/go-zero/rest"
 	"github.com/zeromicro/go-zero/zrpc"
 )
@@ -18,6 +19,7 @@ type ServiceContext struct {
 	JwtAuth     rest.Middleware
 	UserService userpb.UserServiceClient
 	AuthService authpb.AuthServiceClient
+	Redis       *redis.Redis
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
@@ -25,11 +27,13 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	authClient := zrpc.MustNewClient(c.AuthService)
 
 	authSvcClient := authpb.NewAuthServiceClient(authClient.Conn())
+	redisClient := redis.MustNewRedis(c.CacheRedis)
 
 	return &ServiceContext{
 		Config:      c,
-		JwtAuth:     middleware.NewJwtAuthMiddleware(c.JwtAuth, authSvcClient).Handle,
+		JwtAuth:     middleware.NewJwtAuthMiddleware(c.JwtAuth, authSvcClient, redisClient).Handle,
 		UserService: userpb.NewUserServiceClient(userClient.Conn()),
 		AuthService: authSvcClient,
+		Redis:       redisClient,
 	}
 }

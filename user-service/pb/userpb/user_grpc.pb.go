@@ -22,15 +22,26 @@ const (
 	UserService_VerifyPassword_FullMethodName = "/user.UserService/VerifyPassword"
 	UserService_Register_FullMethodName       = "/user.UserService/Register"
 	UserService_GetUserData_FullMethodName    = "/user.UserService/GetUserData"
+	UserService_SetUserData_FullMethodName    = "/user.UserService/SetUserData"
+	UserService_GetUserAvatar_FullMethodName  = "/user.UserService/GetUserAvatar"
+	UserService_SetUserAvatar_FullMethodName  = "/user.UserService/SetUserAvatar"
 )
 
 // UserServiceClient is the client API for UserService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// UserService provides user management operations.
 type UserServiceClient interface {
+	// VerifyPassword validates user credentials.
 	VerifyPassword(ctx context.Context, in *VerifyPasswordRequest, opts ...grpc.CallOption) (*VerifyPasswordResponse, error)
+	// Register creates a new user account.
 	Register(ctx context.Context, in *RegisterRequest, opts ...grpc.CallOption) (*RegisterResponse, error)
+	// GetUserData retrieves user profile data.
 	GetUserData(ctx context.Context, in *UserDataRequest, opts ...grpc.CallOption) (*UserDataResponse, error)
+	SetUserData(ctx context.Context, in *UserDataRequest, opts ...grpc.CallOption) (*UserDataResponse, error)
+	GetUserAvatar(ctx context.Context, in *UserAvatarRequest, opts ...grpc.CallOption) (*UserAvatarResponse, error)
+	SetUserAvatar(ctx context.Context, in *UserAvatarRequest, opts ...grpc.CallOption) (*UserAvatarResponse, error)
 }
 
 type userServiceClient struct {
@@ -71,13 +82,51 @@ func (c *userServiceClient) GetUserData(ctx context.Context, in *UserDataRequest
 	return out, nil
 }
 
+func (c *userServiceClient) SetUserData(ctx context.Context, in *UserDataRequest, opts ...grpc.CallOption) (*UserDataResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UserDataResponse)
+	err := c.cc.Invoke(ctx, UserService_SetUserData_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userServiceClient) GetUserAvatar(ctx context.Context, in *UserAvatarRequest, opts ...grpc.CallOption) (*UserAvatarResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UserAvatarResponse)
+	err := c.cc.Invoke(ctx, UserService_GetUserAvatar_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userServiceClient) SetUserAvatar(ctx context.Context, in *UserAvatarRequest, opts ...grpc.CallOption) (*UserAvatarResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UserAvatarResponse)
+	err := c.cc.Invoke(ctx, UserService_SetUserAvatar_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // UserServiceServer is the server API for UserService service.
 // All implementations must embed UnimplementedUserServiceServer
 // for forward compatibility.
+//
+// UserService provides user management operations.
 type UserServiceServer interface {
+	// VerifyPassword validates user credentials.
 	VerifyPassword(context.Context, *VerifyPasswordRequest) (*VerifyPasswordResponse, error)
+	// Register creates a new user account.
 	Register(context.Context, *RegisterRequest) (*RegisterResponse, error)
+	// GetUserData retrieves user profile data.
 	GetUserData(context.Context, *UserDataRequest) (*UserDataResponse, error)
+	SetUserData(context.Context, *UserDataRequest) (*UserDataResponse, error)
+	GetUserAvatar(context.Context, *UserAvatarRequest) (*UserAvatarResponse, error)
+	SetUserAvatar(context.Context, *UserAvatarRequest) (*UserAvatarResponse, error)
 	mustEmbedUnimplementedUserServiceServer()
 }
 
@@ -96,6 +145,15 @@ func (UnimplementedUserServiceServer) Register(context.Context, *RegisterRequest
 }
 func (UnimplementedUserServiceServer) GetUserData(context.Context, *UserDataRequest) (*UserDataResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetUserData not implemented")
+}
+func (UnimplementedUserServiceServer) SetUserData(context.Context, *UserDataRequest) (*UserDataResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetUserData not implemented")
+}
+func (UnimplementedUserServiceServer) GetUserAvatar(context.Context, *UserAvatarRequest) (*UserAvatarResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetUserAvatar not implemented")
+}
+func (UnimplementedUserServiceServer) SetUserAvatar(context.Context, *UserAvatarRequest) (*UserAvatarResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetUserAvatar not implemented")
 }
 func (UnimplementedUserServiceServer) mustEmbedUnimplementedUserServiceServer() {}
 func (UnimplementedUserServiceServer) testEmbeddedByValue()                     {}
@@ -172,6 +230,60 @@ func _UserService_GetUserData_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _UserService_SetUserData_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UserDataRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).SetUserData(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_SetUserData_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).SetUserData(ctx, req.(*UserDataRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserService_GetUserAvatar_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UserAvatarRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).GetUserAvatar(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_GetUserAvatar_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).GetUserAvatar(ctx, req.(*UserAvatarRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserService_SetUserAvatar_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UserAvatarRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).SetUserAvatar(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_SetUserAvatar_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).SetUserAvatar(ctx, req.(*UserAvatarRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // UserService_ServiceDesc is the grpc.ServiceDesc for UserService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -190,6 +302,18 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetUserData",
 			Handler:    _UserService_GetUserData_Handler,
+		},
+		{
+			MethodName: "SetUserData",
+			Handler:    _UserService_SetUserData_Handler,
+		},
+		{
+			MethodName: "GetUserAvatar",
+			Handler:    _UserService_GetUserAvatar_Handler,
+		},
+		{
+			MethodName: "SetUserAvatar",
+			Handler:    _UserService_SetUserAvatar_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

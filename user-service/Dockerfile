@@ -8,6 +8,7 @@ COPY go.work go.work.sum ./
 COPY gateway-service/ gateway-service/
 COPY common-service/ common-service/
 COPY user-service/ user-service/
+COPY global/golang/ global/golang/
 
 # Sync workspace dependencies
 RUN go work sync

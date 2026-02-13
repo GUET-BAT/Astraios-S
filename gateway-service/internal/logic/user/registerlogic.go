@@ -9,6 +9,7 @@ import (
 
 	"github.com/GUET-BAT/Astraios-S/gateway-service/internal/svc"
 	"github.com/GUET-BAT/Astraios-S/gateway-service/internal/types"
+	httpstatuscode "github.com/GUET-BAT/Astraios-S/global/http"
 	"github.com/GUET-BAT/Astraios-S/user-service/pb/userpb"
 
 	"github.com/zeromicro/go-zero/core/logx"
@@ -33,7 +34,7 @@ func NewRegisterLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Register
 func (l *RegisterLogic) Register(req *types.RegisterRequest) (resp *types.RegisterResponse, err error) {
 	// Step 1: Validate request payload.
 	if req == nil || req.Username == "" || req.Password == "" {
-		return &types.RegisterResponse{Code: 1}, nil
+		return &types.RegisterResponse{Code: httpstatuscode.CodeInvalidParam}, nil
 	}
 
 	// Step 2: Build RPC request to user-service.
@@ -49,9 +50,11 @@ func (l *RegisterLogic) Register(req *types.RegisterRequest) (resp *types.Regist
 	rpcResp, err := l.svcCtx.UserService.Register(ctx, rpcReq)
 	if err != nil {
 		l.Errorf("register: rpc call failed: %v", err)
-		return &types.RegisterResponse{Code: 3}, nil
+		return &types.RegisterResponse{Code: httpstatuscode.CodeInternalError}, nil
 	}
 
 	// Step 4: Map RPC response to HTTP response.
-	return &types.RegisterResponse{Code: rpcResp.Code}, nil
+	return &types.RegisterResponse{
+		Code: rpcResp.Code,
+		Msg:  "注册成功"}, nil
 }

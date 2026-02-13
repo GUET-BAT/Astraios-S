@@ -4,15 +4,19 @@
 package config
 
 import (
+	"github.com/zeromicro/go-zero/core/stores/redis"
 	"github.com/zeromicro/go-zero/rest"
 	"github.com/zeromicro/go-zero/zrpc"
 )
 
 type Config struct {
 	rest.RestConf
-	UserService zrpc.RpcClientConf
-	AuthService zrpc.RpcClientConf
-	JwtAuth     JwtAuthConf `json:",optional"`
+	CommonService zrpc.RpcClientConf
+	ConfigDataId  string `json:",optional"`
+	UserService   zrpc.RpcClientConf
+	AuthService   zrpc.RpcClientConf
+	JwtAuth       JwtAuthConf     `json:",optional"`
+	CacheRedis    redis.RedisConf `json:"cacheRedis,optional"`
 }
 
 type JwtAuthConf struct {

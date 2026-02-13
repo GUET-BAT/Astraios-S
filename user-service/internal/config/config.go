@@ -5,6 +5,15 @@ import (
 	"github.com/zeromicro/go-zero/zrpc"
 )
 
+type Config struct {
+	zrpc.RpcServerConf
+	CommonService zrpc.RpcClientConf
+	ConfigDataId  string          `json:",optional"`
+	Mysql         MysqlConf       `json:"mysql,optional"`
+	CacheRedis    redis.RedisConf `json:"cacheRedis,optional"`
+	Oss           OssConf         `json:"oss,optional"`
+}
+
 // MysqlConf holds read/write split MySQL configuration.
 // Address is the MySQL host, WPort is the write port, RPort is the read port.
 type MysqlConf struct {
@@ -17,10 +26,9 @@ type MysqlConf struct {
 	Params   string `json:"params"`
 }
 
-type Config struct {
-	zrpc.RpcServerConf
-	CommonService zrpc.RpcClientConf
-	ConfigDataId  string          `json:",optional"`
-	Mysql         MysqlConf       `json:"mysql,optional"`
-	CacheRedis    redis.RedisConf `json:"cacheRedis,optional"`
+type OssConf struct {
+	Region     string `json:"region"`
+	Bucketname string `json:"bucketname"`
+	Bucketurl  string `json:"bucketurl"`
+	Endpoint   string `json:"endpoint"`
 }
