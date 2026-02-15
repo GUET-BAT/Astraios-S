@@ -43,6 +43,10 @@ func (l *LoginLogic) Login(req *types.LoginRequest) (resp *types.LoginResponse, 
 	defer cancel()
 
 	rpcResp, err := l.svcCtx.AuthService.Login(ctx, rpcReq)
+	if err != nil {
+		l.Logger.Error("Login rpc request failed, err: %v", err)
+		return nil, err
+	}
 
 	return &types.LoginResponse{
 		Code: 0,
