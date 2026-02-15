@@ -18,7 +18,7 @@ UserService:
     Breaker: true
 AuthService:
   Endpoints:
-    - auth-service:9091
+    - auth-service:9090
   Timeout: 2000
   NonBlock: true
   Middlewares:
