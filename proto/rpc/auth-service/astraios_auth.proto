@@ -1,0 +1,83 @@
+syntax = "proto3";
+
+option java_package = "com.astraios.grpc.auth";
+option java_multiple_files = true;
+option go_package = "github.com/GUET-BAT/Astraios-S/gateway-service/pb/authpb";
+
+package astraios.auth;
+
+// Empty 消息
+message Empty {}
+
+// 认证服务
+service AuthService {
+  // 用户登录
+  rpc Login (LoginRequest) returns (LoginResponse);
+  
+  // 用户注册
+  rpc Register (RegisterRequest) returns (RegisterResponse);
+  
+  // 刷新令牌
+  rpc RefreshToken (RefreshTokenRequest) returns (RefreshTokenResponse);
+
+  // 获取 JWKS (/.well-known/jwks.json)
+  rpc GetJwks (Empty) returns (JwksResponse);
+}
+
+// 登录请求
+message LoginRequest {
+  string username = 1;
+  string password = 2;
+  int32 type = 3;
+}
+
+// 登录响应
+message LoginResponse {
+  string access_token = 3;
+  string refresh_token = 4;
+
+  reserved 1, 2;
+  reserved "code", "msg";
+}
+
+// 注册请求
+message RegisterRequest {
+  string username = 1;
+  string password = 2;
+  int32 type = 3;
+}
+
+// 注册响应
+message RegisterResponse {
+  reserved 1, 2;
+  reserved "code", "msg";
+}
+
+// 刷新令牌请求
+message RefreshTokenRequest {
+  string refresh_token = 1;
+}
+
+// 刷新令牌响应
+message RefreshTokenResponse {
+  string access_token = 3;
+  string refresh_token = 4;
+
+  reserved 1, 2;
+  reserved "code", "msg";
+}
+
+// 单个 JWK
+message Jwk {
+  string kty = 1;
+  string use = 2;
+  string kid = 3;
+  string alg = 4;
+  string n = 5;
+  string e = 6;
+}
+
+// JWKS 响应
+message JwksResponse {
+  repeated Jwk keys = 1;
+}
