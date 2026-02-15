@@ -27,8 +27,10 @@ type MysqlConf struct {
 }
 
 type OssConf struct {
-	Region     string `json:"region"`
-	Bucketname string `json:"bucketname"`
-	Bucketurl  string `json:"bucketurl"`
-	Endpoint   string `json:"endpoint"`
+	Region          string `json:"region"`
+	Bucketname      string `json:"bucketname"`
+	Bucketurl       string `json:"bucketurl"`
+	Endpoint        string `json:"endpoint"`
+	AccessKeyID     string `json:"accessKeyId"`
+	AccessKeySecret string `json:"accessKeySecret"`
 }

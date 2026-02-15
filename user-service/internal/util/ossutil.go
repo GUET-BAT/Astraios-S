@@ -14,10 +14,12 @@ import (
 )
 
 const (
-	envOSSRegion     = "OSS_REGION"
-	envOSSBucketName = "OSS_BUCKET_NAME"
-	envOSSBucketURL  = "OSS_BUCKET_URL"
-	envOSSEndpoint   = "OSS_ENDPOINT"
+	envOSSRegion          = "OSS_REGION"
+	envOSSBucketName      = "OSS_BUCKET_NAME"
+	envOSSBucketURL       = "OSS_BUCKET_URL"
+	envOSSEndpoint        = "OSS_ENDPOINT"
+	envOSSAccessKeyID     = "ALIBABACLOUD_ACCESS_KEY_ID"
+	envOSSAccessKeySecret = "ALIBABACLOUD_ACCESS_KEY_SECRET"
 
 	objectNameRegex = `^[a-zA-Z0-9\-_\./]+$`
 )
@@ -25,10 +27,12 @@ const (
 var validObjectNameRegex = regexp.MustCompile(objectNameRegex)
 
 type OSSConfig struct {
-	Region     string
-	BucketName string
-	BucketURL  string
-	Endpoint   string
+	Region          string
+	BucketName      string
+	BucketURL       string
+	Endpoint        string
+	AccessKeyID     string
+	AccessKeySecret string
 }
 
 type OSSClient struct {
@@ -61,6 +65,10 @@ func NewOSSClient(cfg OSSConfig) (*OSSClient, error) {
 		return nil, err
 	}
 
+	if err := setCredentialsEnv(cfg.AccessKeyID, cfg.AccessKeySecret); err != nil {
+		return nil, err
+	}
+
 	ossCfg := oss.LoadDefaultConfig().
 		WithCredentialsProvider(credentials.NewEnvironmentVariableCredentialsProvider()).
 		WithRegion(region).
@@ -77,6 +85,20 @@ func NewOSSClient(cfg OSSConfig) (*OSSClient, error) {
 		bucketURL:  bucketURL,
 		region:     region,
 	}, nil
+}
+
+func setCredentialsEnv(accessKeyID, accessKeySecret string) error {
+	if strings.TrimSpace(accessKeyID) != "" {
+		if err := os.Setenv(envOSSAccessKeyID, strings.TrimSpace(accessKeyID)); err != nil {
+			return fmt.Errorf("failed to set OSS_ACCESS_KEY_ID: %w", err)
+		}
+	}
+	if strings.TrimSpace(accessKeySecret) != "" {
+		if err := os.Setenv(envOSSAccessKeySecret, strings.TrimSpace(accessKeySecret)); err != nil {
+			return fmt.Errorf("failed to set OSS_ACCESS_KEY_SECRET: %w", err)
+		}
+	}
+	return nil
 }
 
 func (c *OSSClient) PresignPut(ctx context.Context, objectName string, expires time.Duration) (*PresignResult, error) {

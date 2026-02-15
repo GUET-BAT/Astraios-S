@@ -43,10 +43,12 @@ func mustNewRedisClient(config redis.RedisConf) *redis.Redis {
 
 func mustNewOssClient(config config.OssConf) (*util.OSSClient, error) {
 	ossClient, ossErr := util.NewOSSClient(util.OSSConfig{
-		Region:     config.Region,
-		BucketName: config.Bucketname,
-		BucketURL:  config.Bucketurl,
-		Endpoint:   config.Endpoint,
+		Region:          config.Region,
+		BucketName:      config.Bucketname,
+		BucketURL:       config.Bucketurl,
+		Endpoint:        config.Endpoint,
+		AccessKeyID:     config.AccessKeyID,
+		AccessKeySecret: config.AccessKeySecret,
 	})
 	if ossErr != nil {
 		return nil, fmt.Errorf("failed to initialize OSS client: %w", ossErr)
