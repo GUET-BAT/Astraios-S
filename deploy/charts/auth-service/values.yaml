@@ -58,7 +58,7 @@ config:
     kubernetes:
       enabled: false
     redis:
-      host: redis
+      host: localhost
       port: 6379
       database: 0
     nacos:
@@ -84,6 +84,12 @@ config:
     commonService:
       address: static://common-service:8080
       negotiationType: plaintext
+  remoteConfig:
+    enabled: true
+    failFast: true
+    nacosDataId: auth-service.key.config
+    redisDataId: auth-service.core.config
+    timeoutMs: 3000
   extraYaml: ""
 
 resources:

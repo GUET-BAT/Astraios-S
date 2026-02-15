@@ -13,7 +13,9 @@ public class RemoteConfigProperties {
 
     private boolean failFast = true;
 
-    private String nacosDataId = "auth-service-key";
+    private String nacosDataId = "auth-service.key.config";
+
+    private String redisDataId = "auth-service.core.config";
 
     private long timeoutMs = 3000L;
 }

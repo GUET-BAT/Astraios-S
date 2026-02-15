@@ -33,6 +33,9 @@ data:
         redis:
           host: {{ .Values.config.spring.redis.host }}
           port: {{ .Values.config.spring.redis.port }}
+{{- if .Values.config.spring.redis.password }}
+          password: {{ .Values.config.spring.redis.password }}
+{{- end }}
           database: {{ .Values.config.spring.redis.database }}
     grpc:
       server:
@@ -44,6 +47,13 @@ data:
         common-service:
           address: {{ .Values.config.grpc.commonService.address }}
           negotiation-type: {{ .Values.config.grpc.commonService.negotiationType }}
+    auth:
+      remote-config:
+        enabled: {{ .Values.config.remoteConfig.enabled }}
+        fail-fast: {{ .Values.config.remoteConfig.failFast }}
+        nacos-data-id: {{ .Values.config.remoteConfig.nacosDataId }}
+        redis-data-id: {{ .Values.config.remoteConfig.redisDataId }}
+        timeout-ms: {{ .Values.config.remoteConfig.timeoutMs }}
 {{ if .Values.config.extraYaml }}
 {{ .Values.config.extraYaml | nindent 4 }}
 {{- end }}
