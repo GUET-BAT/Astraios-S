@@ -23,7 +23,6 @@ import (
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/stores/redis"
 	"github.com/zeromicro/go-zero/rest/httpx"
-	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 // rsaPublicKey holds a parsed RSA public key with its kid.
@@ -176,7 +175,7 @@ func (m *JwtAuthMiddleware) getKeys(ctx context.Context) ([]rsaPublicKey, error)
 		return m.keys, nil
 	}
 
-	resp, err := m.authService.GetJwks(ctx, &emptypb.Empty{})
+	resp, err := m.authService.GetJwks(ctx, &authpb.Empty{})
 	if err != nil {
 		return nil, err
 	}

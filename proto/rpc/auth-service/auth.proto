@@ -4,9 +4,10 @@ option java_package = "com.astraios.grpc.auth";
 option java_multiple_files = true;
 option go_package = "github.com/GUET-BAT/Astraios-S/gateway-service/pb/authpb";
 
-package auth;
+package astraios.auth;
 
-import "google/protobuf/empty.proto";
+// Empty 消息
+message Empty {}
 
 // 认证服务
 service AuthService {
@@ -20,7 +21,7 @@ service AuthService {
   rpc RefreshToken (RefreshTokenRequest) returns (RefreshTokenResponse);
 
   // 获取 JWKS (/.well-known/jwks.json)
-  rpc GetJwks (google.protobuf.Empty) returns (JwksResponse);
+  rpc GetJwks (Empty) returns (JwksResponse);
 }
 
 // 登录请求
