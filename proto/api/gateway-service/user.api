@@ -5,37 +5,75 @@ info (
 	version: "v1"
 )
 
-type RegisterRequest {
-	Username string `json:"username"`
-	Password string `json:"password"`
-	Type     int32  `json:"type,optional"`
-}
+// register and login
+type (
+	RegisterRequest {
+		Username string `json:"username"`
+		Password string `json:"password"`
+		Type     int32  `json:"type,optional"`
+	}
+	RegisterResponse {
+		Code int32  `json:"code"`
+		Msg  string `json:"message,optional"`
+		Data string `json:"data,optional"`
+	}
+	LoginRequest {
+		Username string `json:"username"`
+		Password string `json:"password"`
+		Type     int32  `json:"type,optional"`
+	}
+	LoginResponseData {
+		AccessToken  string `json:"access_token"`
+		RefreshToken string `json:"refresh_token"`
+	}
+	LoginResponse {
+		Code int32             `json:"code"`
+		Msg  string            `json:"message,optional"`
+		Data LoginResponseData `json:"data"`
+	}
+	LogoutRequest  {}
+	LogoutResponse {
+		Code int32  `json:"code"`
+		Msg  string `json:"message,optional"`
+		Data string `json:"data,optional"`
+	}
+)
 
-type RegisterResponse {
-	Code int32 `json:"code"`
-}
-
-type UserDataRequest {
-	Userid string `path:"userid"`
-}
-
-type UserDataResponse {
-	UserId          string `json:"userId"`
-	Nickname        string `json:"nickname"`
-	Avatar          string `json:"avatar"`
-	Gender          int32  `json:"gender"`
-	Birthday        string `json:"birthday"`
-	Bio             string `json:"bio"`
-	BackgroundImage string `json:"backgroundImage"`
-	Country         string `json:"country"`
-	Province        string `json:"province"`
-	City            string `json:"city"`
-	School          string `json:"school"`
-	Major           string `json:"major"`
-	GraduationYear  int32  `json:"graduationYear"`
-	CreatedAt       string `json:"createdAt"`
-	UpdatedAt       string `json:"updatedAt"`
-}
+// user_info
+type (
+	UserInfo {
+		Userid          string `json:"user_id,optional"`
+		Nickname        string `json:"nickname"`
+		Avatar          string `json:"avatar"`
+		Gender          int32  `json:"gender"`
+		Birthday        string `json:"birthday"`
+		Bio             string `json:"bio"`
+		BackgroundImage string `json:"backgroundImage"`
+		Country         string `json:"country"`
+		Province        string `json:"province"`
+		City            string `json:"city"`
+		School          string `json:"school"`
+		Major           string `json:"major"`
+		GraduationYear  int32  `json:"graduation_year"`
+		CreatedAt       string `json:"created_at"`
+		UpdatedAt       string `json:"updated_at"`
+	}
+	UserDataRequest {
+		UserInfo UserInfo `json:"user_info,optional"`
+	}
+	UserDataResponseData {
+		UserInfo UserInfo `json:"user_info"`
+	}
+	UserDataResponse {
+		Code int32                `json:"code"`
+		Msg  string               `json:"message"`
+		Data UserDataResponseData `json:"data,optional"`
+	}
+	AvatarUrlRequest  {}
+	AvatarUrlResponse {
+		AvatarUrl string `json:"avatar_url"`
+	}
+)
 
 @server (
 	group: user
@@ -43,6 +81,9 @@ type UserDataResponse {
 service gateway {
 	@handler Register
 	post /api/v1/users/register (RegisterRequest) returns (RegisterResponse)
+
+	@handler Login
+	post /api/v1/users/login (LoginRequest) returns (LoginResponse)
 }
 
 @server (
@@ -50,7 +91,19 @@ service gateway {
 	middleware: JwtAuth
 )
 service gateway {
+	@handler Logout
+	post /api/v1/users/logout (LogoutRequest) returns (LogoutResponse)
+
 	@handler GetUserData
-	get /api/v1/users/:userid (UserDataRequest) returns (UserDataResponse)
+	get /api/v1/users/user-data (UserDataRequest) returns (UserDataResponse)
+
+	@handler SetUserData
+	post /api/v1/users/user-data (UserDataRequest) returns (UserDataResponse)
+
+	@handler GetAvatar
+	get /api/v1/users/presign-url (AvatarUrlRequest) returns (AvatarUrlResponse)
+
+	@handler SetAvatar
+	post /api/v1/users/presign-url (AvatarUrlRequest) returns (AvatarUrlResponse)
 }
 

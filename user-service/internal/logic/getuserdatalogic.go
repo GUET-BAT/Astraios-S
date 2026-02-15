@@ -35,8 +35,7 @@ func (l *GetUserDataLogic) GetUserData(in *userpb.UserDataRequest) (*userpb.User
 	if in == nil {
 		return nil, status.Error(codes.InvalidArgument, "request is required")
 	}
-	// NOTE: Field name will change to in.UserId after proto regeneration.
-	userID := strings.TrimSpace(in.Userid)
+	userID := strings.TrimSpace(in.UserId)
 	if userID == "" {
 		return nil, status.Error(codes.InvalidArgument, "user_id is required")
 	}

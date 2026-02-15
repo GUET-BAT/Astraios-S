@@ -5,6 +5,7 @@ package user
 
 import (
 	"context"
+	"strings"
 
 	"github.com/GUET-BAT/Astraios-S/gateway-service/internal/middleware"
 	"github.com/GUET-BAT/Astraios-S/gateway-service/internal/svc"
@@ -32,24 +33,23 @@ func NewGetUserDataLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetUs
 
 func (l *GetUserDataLogic) GetUserData(req *types.UserDataRequest) (resp *types.UserDataResponse, err error) {
 	// Step 1: Validate request parameters.
-	if req == nil || req.Userid == "" {
-		return nil, status.Error(codes.InvalidArgument, "userid is required")
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "request is required")
 	}
 
-	// Step 2: Enforce that token subject matches requested user id.
+	// Step 2: Read user id from token subject.
 	subject, ok := middleware.SubjectFromContext(l.ctx)
 	if !ok {
 		return nil, status.Error(codes.Unauthenticated, "unauthorized")
 	}
-	if subject != req.Userid {
-		l.Infof("get user data: subject mismatch, subject=%s requested=%s", subject, req.Userid)
-		return nil, status.Error(codes.PermissionDenied, "forbidden")
+	userID := strings.TrimSpace(subject)
+	if userID == "" {
+		return nil, status.Error(codes.Unauthenticated, "unauthorized")
 	}
 
 	// Step 3: Build RPC request to user-service.
-	// NOTE: Field name will change to UserId after proto regeneration.
 	rpcReq := &userpb.UserDataRequest{
-		Userid: req.Userid,
+		UserId: userID,
 	}
 
 	// Step 4: Call user-service GetUserData with timeout.
@@ -63,20 +63,25 @@ func (l *GetUserDataLogic) GetUserData(req *types.UserDataRequest) (resp *types.
 
 	// Step 5: Map RPC response to HTTP response.
 	return &types.UserDataResponse{
-		UserId:          rpcResp.UserId,
-		Nickname:        rpcResp.Nickname,
-		Avatar:          rpcResp.Avatar,
-		Gender:          rpcResp.Gender,
-		Birthday:        rpcResp.Birthday,
-		Bio:             rpcResp.Bio,
-		BackgroundImage: rpcResp.BackgroundImage,
-		Country:         rpcResp.Country,
-		Province:        rpcResp.Province,
-		City:            rpcResp.City,
-		School:          rpcResp.School,
-		Major:           rpcResp.Major,
-		GraduationYear:  rpcResp.GraduationYear,
-		CreatedAt:       rpcResp.CreatedAt,
-		UpdatedAt:       rpcResp.UpdatedAt,
+		Code: 0,
+		Data: types.UserDataResponseData{
+			UserInfo: types.UserInfo{
+				Userid:          rpcResp.UserId,
+				Nickname:        rpcResp.Nickname,
+				Avatar:          rpcResp.Avatar,
+				Gender:          rpcResp.Gender,
+				Birthday:        rpcResp.Birthday,
+				Bio:             rpcResp.Bio,
+				BackgroundImage: rpcResp.BackgroundImage,
+				Country:         rpcResp.Country,
+				Province:        rpcResp.Province,
+				City:            rpcResp.City,
+				School:          rpcResp.School,
+				Major:           rpcResp.Major,
+				GraduationYear:  rpcResp.GraduationYear,
+				CreatedAt:       rpcResp.CreatedAt,
+				UpdatedAt:       rpcResp.UpdatedAt,
+			},
+		},
 	}, nil
 }

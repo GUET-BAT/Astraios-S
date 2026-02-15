@@ -6,7 +6,9 @@ package middleware
 import (
 	"context"
 	"crypto/rsa"
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"math/big"
 	"net/http"
@@ -19,8 +21,8 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/stores/redis"
 	"github.com/zeromicro/go-zero/rest/httpx"
-	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 // rsaPublicKey holds a parsed RSA public key with its kid.
@@ -32,6 +34,7 @@ type rsaPublicKey struct {
 type JwtAuthMiddleware struct {
 	cfg         config.JwtAuthConf
 	authService authpb.AuthServiceClient
+	redis       *redis.Redis
 	mu          sync.RWMutex
 	keys        []rsaPublicKey
 	fetchedAt   time.Time
@@ -41,12 +44,21 @@ type ctxKey int
 
 const (
 	ctxKeySubject ctxKey = iota
+	ctxKeyToken
+	ctxKeyTokenExpiry
 )
 
-func NewJwtAuthMiddleware(cfg config.JwtAuthConf, authService authpb.AuthServiceClient) *JwtAuthMiddleware {
+const (
+	tokenBlacklistPrefix = "gateway:token:blacklist:"
+	tokenBlacklistValue  = "1"
+	redisOpTimeout       = 2 * time.Second
+)
+
+func NewJwtAuthMiddleware(cfg config.JwtAuthConf, authService authpb.AuthServiceClient, redisClient *redis.Redis) *JwtAuthMiddleware {
 	return &JwtAuthMiddleware{
 		cfg:         cfg,
 		authService: authService,
+		redis:       redisClient,
 	}
 }
 
@@ -62,7 +74,25 @@ func (m *JwtAuthMiddleware) Handle(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		// Step 2: Load JWK set via gRPC (cached with TTL).
+		// Step 2: Reject tokens that are in blacklist.
+		if m.redis == nil {
+			logger.Errorf("jwt auth: redis client not configured")
+			writeUnauthorized(w)
+			return
+		}
+		blacklisted, err := m.isTokenBlacklisted(r.Context(), tokenStr)
+		if err != nil {
+			logger.Errorf("jwt auth: redis blacklist check failed: %v", err)
+			writeUnauthorized(w)
+			return
+		}
+		if blacklisted {
+			logger.Infof("jwt auth: token is blacklisted")
+			writeUnauthorized(w)
+			return
+		}
+
+		// Step 3: Load JWK set via gRPC (cached with TTL).
 		keys, err := m.getKeys(r.Context())
 		if err != nil {
 			logger.Errorf("jwt auth: failed to fetch jwks via gRPC: %v", err)
@@ -70,7 +100,7 @@ func (m *JwtAuthMiddleware) Handle(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		// Step 3: Parse and validate token signature + claims.
+		// Step 4: Parse and validate token signature + claims.
 		claims := jwt.MapClaims{}
 		_, err = jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (any, error) {
 			if token.Method.Alg() != jwt.SigningMethodRS256.Alg() {
@@ -93,6 +123,13 @@ func (m *JwtAuthMiddleware) Handle(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
+		expiration, err := claims.GetExpirationTime()
+		if err != nil || expiration == nil {
+			logger.Infof("jwt auth: missing exp claim")
+			writeUnauthorized(w)
+			return
+		}
+
 		subject, err := claims.GetSubject()
 		if err != nil || strings.TrimSpace(subject) == "" {
 			logger.Infof("jwt auth: missing subject in token")
@@ -100,7 +137,7 @@ func (m *JwtAuthMiddleware) Handle(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		// Step 4: Enforce access token type (must be present and equal "access").
+		// Step 5: Enforce access token type (must be present and equal "access").
 		tokenType, ok := claims["token_type"].(string)
 		if !ok || tokenType != "access" {
 			logger.Infof("jwt auth: invalid or missing token_type: %v", claims["token_type"])
@@ -108,8 +145,10 @@ func (m *JwtAuthMiddleware) Handle(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		// Step 5: Continue request.
+		// Step 6: Continue request.
 		ctx := context.WithValue(r.Context(), ctxKeySubject, subject)
+		ctx = context.WithValue(ctx, ctxKeyToken, tokenStr)
+		ctx = context.WithValue(ctx, ctxKeyTokenExpiry, expiration.Time)
 		next(w, r.WithContext(ctx))
 	}
 }
@@ -136,7 +175,7 @@ func (m *JwtAuthMiddleware) getKeys(ctx context.Context) ([]rsaPublicKey, error)
 		return m.keys, nil
 	}
 
-	resp, err := m.authService.GetJwks(ctx, &emptypb.Empty{})
+	resp, err := m.authService.GetJwks(ctx, &authpb.Empty{})
 	if err != nil {
 		return nil, err
 	}
@@ -215,4 +254,32 @@ func SubjectFromContext(ctx context.Context) (string, bool) {
 		return "", false
 	}
 	return subject, true
+}
+
+func TokenFromContext(ctx context.Context) (string, bool) {
+	token, ok := ctx.Value(ctxKeyToken).(string)
+	if !ok || strings.TrimSpace(token) == "" {
+		return "", false
+	}
+	return token, true
+}
+
+func TokenExpiryFromContext(ctx context.Context) (time.Time, bool) {
+	expiry, ok := ctx.Value(ctxKeyTokenExpiry).(time.Time)
+	if !ok || expiry.IsZero() {
+		return time.Time{}, false
+	}
+	return expiry, true
+}
+
+func TokenBlacklistKey(token string) string {
+	sum := sha256.Sum256([]byte(token))
+	return tokenBlacklistPrefix + hex.EncodeToString(sum[:])
+}
+
+func (m *JwtAuthMiddleware) isTokenBlacklisted(ctx context.Context, token string) (bool, error) {
+	ctx, cancel := context.WithTimeout(ctx, redisOpTimeout)
+	defer cancel()
+
+	return m.redis.ExistsCtx(ctx, TokenBlacklistKey(token))
 }

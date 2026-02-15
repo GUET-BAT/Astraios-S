@@ -3,6 +3,39 @@
 
 package types
 
+type AvatarUrlRequest struct {
+}
+
+type AvatarUrlResponse struct {
+	AvatarUrl string `json:"avatar_url"`
+}
+
+type LoginRequest struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+	Type     int32  `json:"type,optional"`
+}
+
+type LoginResponse struct {
+	Code int32             `json:"code"`
+	Msg  string            `json:"message,optional"`
+	Data LoginResponseData `json:"data"`
+}
+
+type LoginResponseData struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+}
+
+type LogoutRequest struct {
+}
+
+type LogoutResponse struct {
+	Code int32  `json:"code"`
+	Msg  string `json:"message,optional"`
+	Data string `json:"data,optional"`
+}
+
 type RegisterRequest struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
@@ -10,15 +43,27 @@ type RegisterRequest struct {
 }
 
 type RegisterResponse struct {
-	Code int32 `json:"code"`
+	Code int32  `json:"code"`
+	Msg  string `json:"message,optional"`
+	Data string `json:"data,optional"`
 }
 
 type UserDataRequest struct {
-	Userid string `path:"userid"`
+	UserInfo UserInfo `json:"user_info,optional"`
 }
 
 type UserDataResponse struct {
-	UserId          string `json:"userId"`
+	Code int32                `json:"code"`
+	Msg  string               `json:"message"`
+	Data UserDataResponseData `json:"data,optional"`
+}
+
+type UserDataResponseData struct {
+	UserInfo UserInfo `json:"user_info"`
+}
+
+type UserInfo struct {
+	Userid          string `json:"user_id,optional"`
 	Nickname        string `json:"nickname"`
 	Avatar          string `json:"avatar"`
 	Gender          int32  `json:"gender"`
@@ -30,7 +75,7 @@ type UserDataResponse struct {
 	City            string `json:"city"`
 	School          string `json:"school"`
 	Major           string `json:"major"`
-	GraduationYear  int32  `json:"graduationYear"`
-	CreatedAt       string `json:"createdAt"`
-	UpdatedAt       string `json:"updatedAt"`
+	GraduationYear  int32  `json:"graduation_year"`
+	CreatedAt       string `json:"created_at"`
+	UpdatedAt       string `json:"updated_at"`
 }

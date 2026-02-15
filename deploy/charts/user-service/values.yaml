@@ -40,7 +40,7 @@ config:
   cpuThreshold: 900
   middlewares:
     breaker: true
-  configDataId: nacos.user-service.core.config
+  configDataId: user-service.core.config
   commonService:
     endpoints:
       - common-service:8080
