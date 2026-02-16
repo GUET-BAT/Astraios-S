@@ -18,8 +18,8 @@ const (
 	envOSSBucketName      = "OSS_BUCKET_NAME"
 	envOSSBucketURL       = "OSS_BUCKET_URL"
 	envOSSEndpoint        = "OSS_ENDPOINT"
-	envOSSAccessKeyID     = "ALIBABACLOUD_ACCESS_KEY_ID"
-	envOSSAccessKeySecret = "ALIBABACLOUD_ACCESS_KEY_SECRET"
+	envOSSAccessKeyID     = "OSS_ACCESS_KEY_ID"
+	envOSSAccessKeySecret = "OSS_ACCESS_KEY_SECRET"
 
 	objectNameRegex = `^[a-zA-Z0-9\-_\./]+$`
 )
