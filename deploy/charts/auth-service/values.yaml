@@ -79,11 +79,19 @@ config:
   grpc:
     serverPort: 9090
     userService:
-      address: static://user-service:8080
+      address: dns:///user-service:8080
       negotiationType: plaintext
+      enableKeepAlive: true
+      keepAliveTime: 30s
+      keepAliveTimeout: 10s
+      keepAliveWithoutCalls: false
     commonService:
-      address: static://common-service:8080
+      address: dns:///common-service:8080
       negotiationType: plaintext
+      enableKeepAlive: true
+      keepAliveTime: 30s
+      keepAliveTimeout: 10s
+      keepAliveWithoutCalls: false
   remoteConfig:
     enabled: true
     failFast: true

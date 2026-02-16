@@ -44,9 +44,17 @@ data:
         user-service:
           address: {{ .Values.config.grpc.userService.address }}
           negotiation-type: {{ .Values.config.grpc.userService.negotiationType }}
+          enable-keep-alive: {{ .Values.config.grpc.userService.enableKeepAlive }}
+          keep-alive-time: {{ .Values.config.grpc.userService.keepAliveTime }}
+          keep-alive-timeout: {{ .Values.config.grpc.userService.keepAliveTimeout }}
+          keep-alive-without-calls: {{ .Values.config.grpc.userService.keepAliveWithoutCalls }}
         common-service:
           address: {{ .Values.config.grpc.commonService.address }}
           negotiation-type: {{ .Values.config.grpc.commonService.negotiationType }}
+          enable-keep-alive: {{ .Values.config.grpc.commonService.enableKeepAlive }}
+          keep-alive-time: {{ .Values.config.grpc.commonService.keepAliveTime }}
+          keep-alive-timeout: {{ .Values.config.grpc.commonService.keepAliveTimeout }}
+          keep-alive-without-calls: {{ .Values.config.grpc.commonService.keepAliveWithoutCalls }}
     auth:
       remote-config:
         enabled: {{ .Values.config.remoteConfig.enabled }}

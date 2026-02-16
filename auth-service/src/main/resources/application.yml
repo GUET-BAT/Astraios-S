@@ -27,11 +27,19 @@ grpc:
     port: 9090
   client:
     user-service:
-      address: static://user-service:8080
+      address: dns:///user-service:8080
       negotiation-type: plaintext
+      enable-keep-alive: true
+      keep-alive-time: 30s
+      keep-alive-timeout: 10s
+      keep-alive-without-calls: false
     common-service:
-      address: static://common-service:8080
+      address: dns:///common-service:8080
       negotiation-type: plaintext
+      enable-keep-alive: true
+      keep-alive-time: 30s
+      keep-alive-timeout: 10s
+      keep-alive-without-calls: false
 management:
   endpoints:
     web.exposure.include: health,info
