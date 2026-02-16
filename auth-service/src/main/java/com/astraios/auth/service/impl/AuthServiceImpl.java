@@ -48,7 +48,7 @@ public class AuthServiceImpl implements AuthService {
                 .build();
 
         VerifyPasswordResponse rpcResponse = verifyPassword(rpcRequest);
-        if (rpcResponse.getCode() == 0) {
+        if (rpcResponse.getCode() != 0) {
             throw new GrpcStatusException(Status.UNAUTHENTICATED, "Invalid username or password");
         }
 
