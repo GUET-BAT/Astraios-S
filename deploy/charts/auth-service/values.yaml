@@ -58,7 +58,7 @@ config:
     kubernetes:
       enabled: false
     redis:
-      host: redis
+      host: localhost
       port: 6379
       database: 0
     nacos:
@@ -79,11 +79,25 @@ config:
   grpc:
     serverPort: 9090
     userService:
-      address: static://user-service:8080
+      address: dns:///user-service:8080
       negotiationType: plaintext
+      enableKeepAlive: true
+      keepAliveTime: 30s
+      keepAliveTimeout: 10s
+      keepAliveWithoutCalls: false
     commonService:
-      address: static://common-service:8080
+      address: dns:///common-service:8080
       negotiationType: plaintext
+      enableKeepAlive: true
+      keepAliveTime: 30s
+      keepAliveTimeout: 10s
+      keepAliveWithoutCalls: false
+  remoteConfig:
+    enabled: true
+    failFast: true
+    nacosDataId: auth-service.key.config
+    redisDataId: auth-service.core.config
+    timeoutMs: 3000
   extraYaml: ""
 
 resources:

@@ -15,7 +15,7 @@ import com.astraios.grpc.auth.LoginResponse;
 import com.astraios.grpc.auth.RegisterResponse;
 import com.astraios.grpc.auth.RefreshTokenRequest;
 import com.astraios.grpc.auth.RefreshTokenResponse;
-import com.google.protobuf.Empty;
+import com.astraios.grpc.auth.Empty;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;

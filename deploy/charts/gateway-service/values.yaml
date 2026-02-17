@@ -52,7 +52,7 @@ config:
       breaker: true
   authService:
     endpoints:
-      - auth-service:9091
+      - auth-service:9090
     timeout: 2000
     nonBlock: true
     middlewares:
