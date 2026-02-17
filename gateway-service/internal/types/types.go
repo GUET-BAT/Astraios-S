@@ -64,18 +64,18 @@ type UserDataResponseData struct {
 
 type UserInfo struct {
 	Userid          string `json:"user_id,optional"`
-	Nickname        string `json:"nickname"`
-	Avatar          string `json:"avatar"`
-	Gender          int32  `json:"gender"`
-	Birthday        string `json:"birthday"`
-	Bio             string `json:"bio"`
-	BackgroundImage string `json:"backgroundImage"`
-	Country         string `json:"country"`
-	Province        string `json:"province"`
-	City            string `json:"city"`
-	School          string `json:"school"`
-	Major           string `json:"major"`
-	GraduationYear  int32  `json:"graduation_year"`
-	CreatedAt       string `json:"created_at"`
-	UpdatedAt       string `json:"updated_at"`
+	Nickname        string `json:"nickname,optional"`
+	Avatar          string `json:"avatar,optional"`
+	Gender          int32  `json:"gender,optional"`
+	Birthday        string `json:"birthday,optional"`
+	Bio             string `json:"bio,optional"`
+	BackgroundImage string `json:"backgroundImage,optional"`
+	Country         string `json:"country,optional"`
+	Province        string `json:"province,optional"`
+	City            string `json:"city,optional"`
+	School          string `json:"school,optional"`
+	Major           string `json:"major,optional"`
+	GraduationYear  int32  `json:"graduation_year,optional"`
+	CreatedAt       string `json:"created_at,optional"`
+	UpdatedAt       string `json:"updated_at,optional"`
 }
