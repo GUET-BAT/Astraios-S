@@ -85,4 +85,5 @@ message UserAvatarRequest {
 
 message UserAvatarResponse {
   string avatar_url = 1;
+  string avatar_path = 2;
 }

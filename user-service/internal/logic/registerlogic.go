@@ -74,8 +74,8 @@ func (l *RegisterLogic) Register(in *userpb.RegisterRequest) (*userpb.RegisterRe
 			return err
 		}
 		if _, err := session.ExecCtx(ctx,
-			`INSERT INTO t_user_profile (user_id) VALUES (?)`,
-			userID); err != nil {
+			`INSERT INTO t_user_profile (user_id, avatar) VALUES (?, ?)`,
+			userID, "avatars/default_avatar.jpg"); err != nil {
 			return err
 		}
 		return nil
