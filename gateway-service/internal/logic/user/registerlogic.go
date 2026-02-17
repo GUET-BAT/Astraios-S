@@ -54,7 +54,20 @@ func (l *RegisterLogic) Register(req *types.RegisterRequest) (resp *types.Regist
 	}
 
 	// Step 4: Map RPC response to HTTP response.
+	var msg string
+	switch rpcResp.Code {
+	case 0:
+		msg = "注册成功"
+	case 1:
+		msg = "参数无效"
+	case 2:
+		msg = "用户名已存在"
+	case 3:
+		msg = "内部错误"
+	default:
+		msg = "注册失败"
+	}
 	return &types.RegisterResponse{
 		Code: rpcResp.Code,
-		Msg:  "注册成功"}, nil
+		Msg:  msg}, nil
 }
