@@ -69,15 +69,21 @@ func NewOSSClient(cfg OSSConfig) (*OSSClient, error) {
 		return nil, err
 	}
 
+	// Build endpoint: use bucket-level domain format for presign URLs
+	// Format: {bucket}.oss-{region}.aliyuncs.com (third-level domain)
+	// This is required because OSS returns SecondLevelDomainForbidden error
+	// when using second-level domain format (oss-{region}.aliyuncs.com)
+	if endpoint == "" {
+		endpoint = fmt.Sprintf("oss-%s.aliyuncs.com", region)
+	}
+
 	ossCfg := oss.LoadDefaultConfig().
 		WithCredentialsProvider(credentials.NewEnvironmentVariableCredentialsProvider()).
 		WithRegion(region).
+		WithEndpoint(endpoint).
 		WithConnectTimeout(10 * time.Second).
 		WithReadWriteTimeout(30 * time.Second).
 		WithRetryMaxAttempts(3)
-	if endpoint != "" {
-		ossCfg = ossCfg.WithEndpoint(endpoint)
-	}
 
 	return &OSSClient{
 		oss:        oss.NewClient(ossCfg),
