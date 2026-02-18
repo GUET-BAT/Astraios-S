@@ -45,10 +45,12 @@ func (l *GetUserAvatarLogic) GetUserAvatar(in *userpb.UserAvatarRequest) (*userp
 		return nil, status.Error(codes.InvalidArgument, "invalid user_id format")
 	}
 
-	var avatar sql.NullString
+	var record struct {
+		Avatar sql.NullString `db:"avatar"`
+	}
 	queryCtx, cancel := context.WithTimeout(l.ctx, dbQueryTimeout)
 	defer cancel()
-	err = l.svcCtx.ReadConn.QueryRowCtx(queryCtx, &avatar, `
+	err = l.svcCtx.ReadConn.QueryRowCtx(queryCtx, &record, `
 SELECT avatar
 FROM t_user_profile
 WHERE user_id = ?
@@ -62,8 +64,8 @@ LIMIT 1`, parsedID)
 		return nil, status.Error(codes.Internal, "internal error")
 	}
 
-	avatarValue := strings.TrimSpace(avatar.String)
-	if !avatar.Valid || avatarValue == "" {
+	avatarValue := strings.TrimSpace(record.Avatar.String)
+	if !record.Avatar.Valid || avatarValue == "" {
 		return &userpb.UserAvatarResponse{AvatarUrl: ""}, nil
 	}
 	if isHTTPURL(avatarValue) {
