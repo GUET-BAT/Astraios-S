@@ -107,7 +107,7 @@ func setCredentialsEnv(accessKeyID, accessKeySecret string) error {
 	return nil
 }
 
-func (c *OSSClient) PresignPut(ctx context.Context, objectName string, expires time.Duration) (*PresignResult, error) {
+func (c *OSSClient) PresignPut(ctx context.Context, objectName string, expires time.Duration, contentType string) (*PresignResult, error) {
 	if err := ValidateObjectName(objectName); err != nil {
 		return nil, err
 	}
@@ -118,6 +118,9 @@ func (c *OSSClient) PresignPut(ctx context.Context, objectName string, expires t
 	request := &oss.PutObjectRequest{
 		Bucket: oss.Ptr(c.bucketName),
 		Key:    oss.Ptr(objectName),
+	}
+	if contentType != "" {
+		request.ContentType = oss.Ptr(contentType)
 	}
 	result, err := c.oss.Presign(ctx, request, oss.PresignExpiration(time.Now().Add(expires)))
 	if err != nil {

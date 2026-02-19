@@ -72,7 +72,7 @@ LIMIT 1`, parsedID)
 	}
 	ossCtx, cancel := context.WithTimeout(l.ctx, ossOpTimeout)
 	defer cancel()
-	presign, err := l.svcCtx.OSSClient.PresignPut(ossCtx, objectKey, avatarUploadExpiry)
+	presign, err := l.svcCtx.OSSClient.PresignPut(ossCtx, objectKey, avatarUploadExpiry, "image/jpeg")
 	if err != nil {
 		l.Errorf("set user avatar: presign put failed: %v", err)
 		return nil, status.Error(codes.Internal, "internal error")

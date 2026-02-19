@@ -67,15 +67,17 @@ func (l *RegisterLogic) Register(in *userpb.RegisterRequest) (*userpb.RegisterRe
 	}
 
 	userID := generateUserID()
-	err = l.svcCtx.WriteConn.TransactCtx(l.ctx, func(ctx context.Context, session sqlx.Session) error {
+	insertCtx, insertCancel := context.WithTimeout(context.Background(), dbQueryTimeout)
+	defer insertCancel()
+	err = l.svcCtx.WriteConn.TransactCtx(insertCtx, func(ctx context.Context, session sqlx.Session) error {
 		if _, err := session.ExecCtx(ctx,
 			`INSERT INTO t_user (id, username, password, status) VALUES (?, ?, ?, 1)`,
 			userID, username, string(hashed)); err != nil {
 			return err
 		}
 		if _, err := session.ExecCtx(ctx,
-			`INSERT INTO t_user_profile (user_id) VALUES (?)`,
-			userID); err != nil {
+			`INSERT INTO t_user_profile (user_id, avatar) VALUES (?, ?)`,
+			userID, "avatars/default_avatar.jpg"); err != nil {
 			return err
 		}
 		return nil
